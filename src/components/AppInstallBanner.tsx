@@ -1,0 +1,8 @@
+import {useEffect,useState} from 'react';
+import {Download,RefreshCw,X} from 'lucide-react';
+import {toast} from 'sonner';
+type InstallPromptEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:'accepted'|'dismissed'}>};
+export default function AppInstallBanner(){const [prompt,setPrompt]=useState<InstallPromptEvent|null>(null);const [hidden,setHidden]=useState(()=>sessionStorage.getItem('install-banner-hidden')==='1');const standalone=window.matchMedia('(display-mode: standalone)').matches||(navigator as any).standalone===true;
+ useEffect(()=>{const h=(e:Event)=>{e.preventDefault();setPrompt(e as InstallPromptEvent)};window.addEventListener('beforeinstallprompt',h);return()=>window.removeEventListener('beforeinstallprompt',h)},[]);
+ if(hidden)return null;const install=async()=>{if(prompt){await prompt.prompt();await prompt.userChoice;setPrompt(null)}else toast('באייפון: שיתוף ← הוסף למסך הבית')};const update=async()=>{const reg=await navigator.serviceWorker?.getRegistration();await reg?.update();if(reg?.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});toast.success('בדקנו אם קיימת גרסה חדשה')};
+ return <div className="install-banner"><div><strong>{standalone?'TEAMUP מותקנת':'TEAMUP כאפליקציה'}</strong><span>{standalone?'בדוק עדכון בלחיצה':'גישה מהירה ישירות ממסך הבית'}</span></div><div className="install-actions">{!standalone&&<button title="הוספה למסך הבית" onClick={install}><Download size={17}/><span>התקנה</span></button>}<button title="בדיקת עדכון אפליקציה" onClick={update}><RefreshCw size={17}/><span>עדכון</span></button><button className="close-install" title="הסתרת ההודעה" onClick={()=>{sessionStorage.setItem('install-banner-hidden','1');setHidden(true)}}><X size={17}/></button></div></div>}
