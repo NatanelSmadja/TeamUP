@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 import {Badge,Card} from '../components/ui';
 import {useGroup} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
-import {fullName,profilePositionLabels} from '../lib/utils';
+import {fullName} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 
 const achievementDefs=[
@@ -25,5 +25,5 @@ export default function StatsPage(){
  {monthly&&<Card className="player-of-month"><div className="month-crown"><Crown size={30}/></div><div><span><CalendarDays size={15}/>שחקן החודש</span><h2>{monthly.first_name} {monthly.last_name}</h2><p>נבחר לפי דירוגים, MVP והשתתפות בחודש הנוכחי</p></div><div className="month-score"><strong>{Math.round(Number(monthly.score))}</strong><span>נקודות</span></div></Card>}
  <div className="podium-grid">{cards.map(([title,p,Icon],i)=><Card key={title} className={`podium-card rank-${i+1}`}><Icon size={25}/><span>{title}</span><h2>{p?fullName(p.profile):'—'}</h2><strong>{p?(i===0?p.rating.toFixed(2):i===1?p.mvp:p.games):0}</strong></Card>)}</div>
  <Card><div className="section-title"><h2><Sparkles size={20}/>הישגי הקבוצה</h2><Badge>מתעדכן אוטומטית</Badge></div><div className="achievement-grid">{rows.flatMap(p=>achievementDefs.filter(a=>a.test(p)).map(a=>({player:p,a}))).slice(0,12).map(({player,a},i)=><Link to={`/players/${player.id}`} key={`${player.id}-${a.key}`} className="achievement-card"><div>{a.icon}</div><section><strong>{a.title}</strong><span>{fullName(player.profile)}</span><small>{a.desc}</small></section><ShieldCheck size={18}/></Link>)}</div>{!rows.some(p=>achievementDefs.some(a=>a.test(p)))&&<p className="empty-inline">ההישגים הראשונים ייפתחו אחרי המשחק הבא.</p>}</Card>
- <Card><div className="section-title"><h2><Trophy size={20}/>טבלת המובילים</h2><Badge>{rows.length} שחקנים</Badge></div><div className="leaderboard-table">{rows.map((p,i)=><Link to={`/players/${p.id}`} key={p.id} className="leader-row"><b>{i<3?[<Trophy/>,<Medal/>,<Award/>][i]:i+1}</b><div className="player-avatar">{p.profile?.first_name?.[0]||'ש'}</div><div><strong>{fullName(p.profile)}</strong><span>{profilePositionLabels(p.profile)}</span></div><div className="leader-stats"><span><Star size={14}/>{p.rating.toFixed(2)}</span><span><Crown size={14}/>{p.mvp}</span><span><Users size={14}/>{p.games}</span></div></Link>)}</div></Card></div>
+ <Card><div className="section-title"><h2><Trophy size={20}/>טבלת המובילים</h2><Badge>{rows.length} שחקנים</Badge></div><div className="leaderboard-table">{rows.map((p,i)=><Link to={`/players/${p.id}`} key={p.id} className="leader-row"><b>{i<3?[<Trophy/>,<Medal/>,<Award/>][i]:i+1}</b><div className="player-avatar">{p.profile?.first_name?.[0]||'ש'}</div><div><strong>{fullName(p.profile)}</strong><span>{(p.profile?.preferred_positions||[]).join(' · ')||'שחקן'}</span></div><div className="leader-stats"><span><Star size={14}/>{p.rating.toFixed(2)}</span><span><Crown size={14}/>{p.mvp}</span><span><Users size={14}/>{p.games}</span></div></Link>)}</div></Card></div>
 }

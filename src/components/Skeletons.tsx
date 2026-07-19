@@ -1,0 +1,2 @@
+export function MatchSkeleton(){return <div className="space-y-5" aria-label="טוען משחק"><div className="skeleton skeleton-hero"/><div className="match-flow-skeleton">{[1,2,3,4,5,6].map(x=><span className="skeleton" key={x}/>)}</div><div className="grid gap-4 lg:grid-cols-2"><div className="skeleton skeleton-card"/><div className="skeleton skeleton-card"/></div></div>}
+export function CardSkeletons({count=6}:{count?:number}){return <div className="squad-grid">{Array.from({length:count}).map((_,i)=><div className="skeleton skeleton-player" key={i}/>)}</div>}
