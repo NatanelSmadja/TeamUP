@@ -94,32 +94,32 @@ export default function SystemAdminPage() {
           <Badge>{s.groups ?? 0}</Badge>
         </div>
         <div className="admin-match-list">
-          {(groups.data || []).map((g: any) => (
-            <div className="admin-match-row" key={g.group_id}>
+          {(groups.data || []).map((group: any) => (
+            <div className="admin-match-row" key={group.group_id}>
               <div>
                 <Badge>
-                  {g.lifecycle_status === "active"
+                  {group.lifecycle_status === "active"
                     ? "פעילה"
-                    : g.lifecycle_status === "archived"
+                    : group.lifecycle_status === "archived"
                       ? "בארכיון"
-                      : g.lifecycle_status}
+                      : group.lifecycle_status}
                 </Badge>
-                <h2>{g.name}</h2>
+                <h2>{group.name}</h2>
                 <p>
-                  {g.owner_name} · {g.member_count} חברים ·{" "}
-                  {g.visibility === "public" ? "ציבורית" : "פרטית"}
+                  {group.owner_name} · {group.member_count} חברים ·{" "}
+                  {group.visibility === "public" ? "ציבורית" : "פרטית"}
                 </p>
               </div>
               <Button
                 variant="secondary"
                 onClick={() =>
                   archive.mutate({
-                    id: g.group_id,
-                    restore: g.lifecycle_status !== "active",
+                    id: group.group_id,
+                    restore: group.lifecycle_status !== "active",
                   })
                 }
               >
-                {g.lifecycle_status === "active" ? (
+                {group.lifecycle_status === "active" ? (
                   <>
                     <Archive size={16} />
                     ארכיון
