@@ -1,5 +1,5 @@
 export type Role='player'|'moderator'|'admin';
-export type Profile={id:string;first_name:string;last_name:string;birth_date:string|null;preferred_position:string|null;preferred_positions:string[]|null;secondary_position:string|null;preferred_foot:'right'|'left'|'both'|null;avatar_url:string|null;base_rating:number;created_at:string};
+export type Profile={id:string;first_name:string;last_name:string;birth_date:string|null;preferred_position:string|null;preferred_positions:string[]|null;secondary_position:string|null;preferred_foot:'right'|'left'|'both'|null;avatar_url:string|null;base_rating:number;is_system_admin?:boolean;created_at:string};
 export type Group={id:string;name:string;description:string|null;default_capacity:number;default_team_size:number;default_team_count:number;owner_id:string};
 export type Member={id:string;group_id:string;user_id:string;role:Role;status:string;consecutive_no_responses:number;joined_at:string;profiles?:Profile};
 export type Match={id:string;group_id:string;title:string;match_date:string;start_time:string;end_time:string|null;location:string|null;team_size:number;team_count:number;capacity:number;price_per_player:number;registration_deadline:string|null;status:string;auto_promote_waitlist:boolean;ratings_open:boolean;created_by:string};

@@ -1,3 +1,56 @@
-import {Navigate,Route,Routes} from 'react-router-dom';import {AuthProvider,useAuth} from './contexts/AuthContext';import Layout from './components/Layout';import AuthPage from './pages/AuthPage';import HomePage from './pages/HomePage';import MatchesPage from './pages/MatchesPage';import MatchPage from './pages/MatchPage';import AdminPage from './pages/AdminPage';import ProfilePage from './pages/ProfilePage';import SquadPage from './pages/SquadPage';import RatingsPage from './pages/RatingsPage';import AvailabilityPage from './pages/AvailabilityPage';import ActivityPage from './pages/ActivityPage';import HistoryPage from './pages/HistoryPage';import StatsPage from './pages/StatsPage';import PlayerPage from './pages/PlayerPage';
-function Router(){const {user,loading}=useAuth();if(loading)return <div className="app-loader"><div><span/><strong>TEAMUP</strong><p>מכינים את המגרש...</p></div></div>;if(!user)return <AuthPage/>;return <Routes><Route element={<Layout/>}><Route index element={<HomePage/>}/><Route path="availability" element={<AvailabilityPage/>}/><Route path="squad" element={<SquadPage/>}/><Route path="players/:id" element={<PlayerPage/>}/><Route path="ratings" element={<RatingsPage/>}/><Route path="stats" element={<StatsPage/>}/><Route path="activity" element={<ActivityPage/>}/><Route path="history" element={<HistoryPage/>}/><Route path="matches" element={<MatchesPage/>}/><Route path="matches/:id" element={<MatchPage/>}/><Route path="admin" element={<AdminPage/>}/><Route path="profile" element={<ProfilePage/>}/></Route><Route path="*" element={<Navigate to="/"/>}/></Routes>}
-export default function App(){return <AuthProvider><Router/></AuthProvider>}
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Layout from "./components/Layout";
+import AuthPage from "./pages/AuthPage";
+import HomePage from "./pages/HomePage";
+import MatchesPage from "./pages/MatchesPage";
+import MatchPage from "./pages/MatchPage";
+import AdminPage from "./pages/AdminPage";
+import ProfilePage from "./pages/ProfilePage";
+import SquadPage from "./pages/SquadPage";
+import RatingsPage from "./pages/RatingsPage";
+import AvailabilityPage from "./pages/AvailabilityPage";
+import ActivityPage from "./pages/ActivityPage";
+import HistoryPage from "./pages/HistoryPage";
+import StatsPage from "./pages/StatsPage";
+import PlayerPage from "./pages/PlayerPage";
+function Router() {
+  const { user, loading } = useAuth();
+  if (loading)
+    return (
+      <div className="app-loader">
+        <div>
+          <span />
+          <strong>TEAMUP</strong>
+          <p>מכינים את המגרש...</p>
+        </div>
+      </div>
+    );
+  if (!user) return <AuthPage />;
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="availability" element={<AvailabilityPage />} />
+        <Route path="squad" element={<SquadPage />} />
+        <Route path="players/:id" element={<PlayerPage />} />
+        <Route path="ratings" element={<RatingsPage />} />
+        <Route path="stats" element={<StatsPage />} />
+        <Route path="activity" element={<ActivityPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="matches" element={<MatchesPage />} />
+        <Route path="matches/:id" element={<MatchPage />} />
+        <Route path="admin" element={<AdminPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router />
+    </AuthProvider>
+  );
+}

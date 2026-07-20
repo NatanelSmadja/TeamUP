@@ -1,3 +1,84 @@
-import {useQuery} from '@tanstack/react-query';import {Activity,CalendarDays,Shuffle,Star,UserPlus} from 'lucide-react';import {Link} from 'react-router-dom';import {Card} from '../components/ui';import {useGroup} from '../hooks/useGroup';import {supabase} from '../lib/supabase';import {useRealtimeInvalidation} from '../hooks/useRealtime';
-const icons:any={registration:UserPlus,match_opened:CalendarDays,teams:Shuffle,ratings:Star};
-export default function ActivityPage(){const {data:g}=useGroup();const key=['activity',g?.group.id];const {data=[]}=useQuery({queryKey:key,enabled:!!g,queryFn:async()=>{const {data,error}=await supabase.from('activity_events').select('*').eq('group_id',g!.group.id).order('created_at',{ascending:false}).limit(80);if(error)throw error;return data||[]}});useRealtimeInvalidation(`activity-${g?.group.id}`,['activity_events'],[key],!!g);return <div className="space-y-5"><div className="page-heading"><div><p>כל מה שקורה בקבוצה, בזמן אמת</p><h1>פעילות אחרונה</h1></div></div><div className="activity-timeline">{data.map((e:any)=>{const Icon=icons[e.event_type]||Activity;const path=e.entity_type==='match'?`/matches/${e.entity_id}`:e.entity_type==='rating'?'/ratings':'/';return <Link to={path} key={e.id} className="activity-event"><div className="activity-icon"><Icon size={18}/></div><div><strong>{e.title}</strong>{e.message&&<p>{e.message}</p>}<time>{new Date(e.created_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</time></div></Link>})}{!data.length&&<Card className="empty-state"><Activity size={34}/><h2>עדיין אין פעילות</h2><p>הרשמות, משחקים וקבוצות יופיעו כאן בזמן אמת.</p></Card>}</div></div>}
+import { useQuery } from "@tanstack/react-query";
+import { Activity, CalendarDays, Shuffle, Star, UserPlus } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Card } from "../components/ui";
+import { useGroup } from "../hooks/useGroup";
+import { supabase } from "../lib/supabase";
+import { useRealtimeInvalidation } from "../hooks/useRealtime";
+const icons: any = {
+  registration: UserPlus,
+  match_opened: CalendarDays,
+  teams: Shuffle,
+  ratings: Star,
+};
+export default function ActivityPage() {
+  const { data: g } = useGroup();
+  const key = ["activity", g?.group.id];
+  const { data = [] } = useQuery({
+    queryKey: key,
+    enabled: !!g,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("activity_events")
+        .select("*")
+        .eq("group_id", g!.group.id)
+        .order("created_at", { ascending: false })
+        .limit(80);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  useRealtimeInvalidation(
+    `activity-${g?.group.id}`,
+    ["activity_events"],
+    [key],
+    !!g,
+  );
+  return (
+    <div className="space-y-5">
+      <div className="page-heading">
+        <div>
+          <p>כל מה שקורה בקבוצה, בזמן אמת</p>
+          <h1>פעילות אחרונה</h1>
+        </div>
+      </div>
+      <div className="activity-timeline">
+        {data.map((e: any) => {
+          const Icon = icons[e.event_type] || Activity;
+          const path =
+            e.entity_type === "match"
+              ? `/matches/${e.entity_id}`
+              : e.entity_type === "rating"
+                ? "/ratings"
+                : "/";
+          return (
+            <Link to={path} key={e.id} className="activity-event">
+              <div className="activity-icon">
+                <Icon size={18} />
+              </div>
+              <div>
+                <strong>{e.title}</strong>
+                {e.message && <p>{e.message}</p>}
+                <time>
+                  {new Date(e.created_at).toLocaleString("he-IL", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </div>
+            </Link>
+          );
+        })}
+        {!data.length && (
+          <Card className="empty-state">
+            <Activity size={34} />
+            <h2>עדיין אין פעילות</h2>
+            <p>הרשמות, משחקים וקבוצות יופיעו כאן בזמן אמת.</p>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
