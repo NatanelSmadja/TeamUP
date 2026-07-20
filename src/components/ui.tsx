@@ -1,5 +1,38 @@
-import type {ButtonHTMLAttributes,HTMLAttributes,InputHTMLAttributes} from 'react';import {HelpCircle} from 'lucide-react';import {cn} from '../lib/utils';
-export function Card({className,...p}:HTMLAttributes<HTMLDivElement>){return <div className={cn('card rounded-[22px] p-4 md:p-5',className)} {...p}/>}
-export function Button({className,variant='primary',title,...p}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'primary'|'secondary'|'danger'|'ghost'}){const s={primary:'btn-primary',secondary:'btn-secondary',danger:'btn-danger',ghost:'btn-ghost'}[variant];return <button title={title} className={cn('tap rounded-xl px-4 py-3 font-extrabold transition disabled:cursor-not-allowed disabled:opacity-45',s,className)} {...p}/>} 
-export function Input({className,...p}:InputHTMLAttributes<HTMLInputElement>){return <input className={cn('form-control',className)} {...p}/>}export function Select({className,...p}:React.SelectHTMLAttributes<HTMLSelectElement>){return <select className={cn('form-control',className)} {...p}/>}export function Badge({children,className}:{children:React.ReactNode;className?:string}){return <span className={cn('badge',className)}>{children}</span>}export function FieldHelp({title,children}:{title:string;children:React.ReactNode}){return <label className="block"><span className="mb-1 flex items-center gap-1.5 text-sm font-extrabold text-[#f4f7fb]">{title}<HelpCircle size={14} className="text-[#8ca0ba]"/></span><span className="mb-2 block text-xs leading-5 text-[#91a0b4]">{children}</span></label>}
-export function Tooltip({label,children}:{label:string;children:React.ReactNode}){return <span className="tooltip-wrap" data-tooltip={label}>{children}</span>}
+import type {ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes} from 'react';
+import {HelpCircle} from 'lucide-react';
+import {cn} from '../lib/utils';
+
+export function Card({className, ...p}: HTMLAttributes<HTMLDivElement>) {
+    return <div className={cn('card rounded-[22px] p-4 md:p-5', className)} {...p}/>
+}
+
+export function Button({className, variant = 'primary', title, ...p}: ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+}) {
+    const s = {primary: 'btn-primary', secondary: 'btn-secondary', danger: 'btn-danger', ghost: 'btn-ghost'}[variant];
+    return <button title={title}
+                   className={cn('tap rounded-xl px-4 py-3 font-extrabold transition disabled:cursor-not-allowed disabled:opacity-45', s, className)} {...p}/>
+}
+
+export function Input({className, ...p}: InputHTMLAttributes<HTMLInputElement>) {
+    return <input className={cn('form-control', className)} {...p}/>
+}
+
+export function Select({className, ...p}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+    return <select className={cn('form-control', className)} {...p}/>
+}
+
+export function Badge({children, className}: { children: React.ReactNode; className?: string }) {
+    return <span className={cn('badge', className)}>{children}</span>
+}
+
+export function FieldHelp({title, children}: { title: string; children: React.ReactNode }) {
+    return <label className="block"><span
+        className="mb-1 flex items-center gap-1.5 text-sm font-extrabold text-[#f4f7fb]">{title}<HelpCircle size={14}
+                                                                                                            className="text-[#8ca0ba]"/></span><span
+        className="mb-2 block text-xs leading-5 text-[#91a0b4]">{children}</span></label>
+}
+
+export function Tooltip({label, children}: { label: string; children: React.ReactNode }) {
+    return <span className="tooltip-wrap" data-tooltip={label}>{children}</span>
+}
