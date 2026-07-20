@@ -3,7 +3,7 @@ import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {BellRing,CalendarCheck,Copy,Edit3,Lock,Plus,Shuffle,Trash2,Unlock,Users,UserMinus,UserPlus} from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge,Button,Card,FieldHelp,Input,Tooltip} from '../components/ui';
-import {useGroup,canManage,isSystemAdmin} from '../hooks/useGroup';
+import {useGroup,canManage} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
 import {statusLabel,fullName} from '../lib/utils';
 import type {Match} from '../types';
@@ -22,7 +22,7 @@ export default function AdminPage(){
  const [tab,setTab]=useState<Tab>('matches');const [open,setOpen]=useState(false);const [pollOpen,setPollOpen]=useState(false);const [selectedDay,setSelectedDay]=useState(2);
  const [f,setF]=useState({title:'משחק TEAMUP',match_date:nextWeekday(2),start_time:'21:00',end_time:'22:30',location:'Gol Time',capacity:'15',team_count:'3',team_size:'5',price_per_player:'0'});
  const [pollForm,setPollForm]=useState({title:'סקר זמינות למשחק',week_start:sundayOfWeek(0),description:''});
- const allowed=canManage(g);const isMainAdmin=isSystemAdmin(profile);
+ const allowed=canManage(g);const isMainAdmin=g?.member.role==='admin';
  const {data:matches=[]}=useQuery({queryKey:['admin-matches',g?.group.id],enabled:!!g&&allowed,queryFn:async()=>{const {data,error}=await supabase.from('matches').select('*').eq('group_id',g!.group.id).order('match_date',{ascending:false}).order('start_time',{ascending:false});if(error)throw error;return data as Match[]}});
  const {data:polls=[]}=useQuery({queryKey:['admin-polls',g?.group.id],enabled:!!g&&allowed,queryFn:async()=>{const {data,error}=await supabase.from('weekly_polls').select('*,availability_votes(count),weekly_poll_responses(count)').eq('group_id',g!.group.id).order('week_start',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;return data||[]}});
  const {data:members=[]}=useQuery({queryKey:['admin-members',g?.group.id],enabled:!!g&&allowed,queryFn:async()=>{const {data,error}=await supabase.from('group_members').select('*,profiles(*),member_permissions(permission_key)').eq('group_id',g!.group.id).order('joined_at');if(error)throw error;return data as any[]}});
