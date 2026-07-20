@@ -74,7 +74,7 @@ export default function Layout(){
         <div className="mobile-top-actions"><NotificationCenter/><NavLink to="/profile" className="mobile-avatar" aria-label="פרופיל">{profile?.first_name?.trim()?.slice(0,1)||<UserRound size={18}/>}</NavLink></div>
         {groupOpen&&memberships.length>1&&<div className="mobile-group-menu card">
           <div className="mobile-group-menu-head"><strong>מעבר קבוצה</strong><NavLink to="/groups">ניהול קבוצות</NavLink></div>
-          {memberships.map(x=><button key={x.group.id} onClick={()=>chooseGroup(x.group.id)} className={cn(x.group.id===g?.group.id&&'active')}><span className="group-color-dot" style={{background:x.group.theme_color||'#2563eb'}}/><span><strong>{x.group.name}</strong><small>{x.role==='admin'?'מנהל קבוצה':'שחקן'}</small></span>{x.group.id===g?.group.id&&<span className="active-check">פעילה</span>}</button>)}
+          {memberships.map(x=><button key={x.group.id} onClick={()=>chooseGroup(x.group.id)} className={cn(x.group.id===g?.group.id&&'active')}><span className="group-color-dot" style={{background:x.group.theme_color||'#2563eb'}}/><span><strong>{x.group.name}</strong><small>{x.member.role==='admin'?'מנהל קבוצה':'שחקן'}</small></span>{x.group.id===g?.group.id&&<span className="active-check">פעילה</span>}</button>)}
         </div>}
       </header>
 
