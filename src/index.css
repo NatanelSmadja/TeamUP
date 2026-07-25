@@ -768,11 +768,12 @@ button {
 
     .notification-popover {
         position: fixed;
-        top: auto;
-        bottom: 82px;
+        top: calc(max(0px, env(safe-area-inset-top)) + 68px);
+        bottom: auto;
         left: 10px;
         right: 10px;
-        width: auto
+        width: auto;
+        max-height: calc(100dvh - 90px)
     }
 
     .mobile-nav > .notification-center .icon-button {
