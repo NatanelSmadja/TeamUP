@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Bell, CheckCheck, ChevronLeft} from 'lucide-react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -11,6 +11,9 @@ export default function NotificationCenter() {
     const {user} = useAuth();
     const [open, setOpen] = useState(false);
     const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
+    const [popoverTop, setPopoverTop] = useState(58);
+    const [desktopLeft, setDesktopLeft] = useState(10);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     const qc = useQueryClient();
     const navigate = useNavigate();
     const {data = []} = useQuery({
@@ -31,6 +34,24 @@ export default function NotificationCenter() {
         query.addEventListener('change', update);
         return () => query.removeEventListener('change', update)
     }, []);
+    useEffect(() => {
+        if (!open) return;
+        const updatePosition = () => {
+            const triggerRect = triggerRef.current?.getBoundingClientRect();
+            if (triggerRect) {
+                const popoverWidth = 360;
+                setPopoverTop(triggerRect.bottom + 8);
+                setDesktopLeft(Math.max(10, Math.min(triggerRect.right - popoverWidth, window.innerWidth - popoverWidth - 10)));
+            }
+        };
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition, true);
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition, true)
+        }
+    }, [open]);
     useEffect(() => {
         if (!user) return;
         const c = supabase.channel(`device-notifications-${user.id}-${crypto.randomUUID()}`).on('postgres_changes', {
@@ -74,7 +95,9 @@ export default function NotificationCenter() {
         setOpen(false);
         navigate(target(n))
     };
-    const popover = <div className="notification-popover">
+    const popover = <div className="notification-popover" style={mobile
+        ? {position: 'fixed', top: popoverTop, bottom: 'auto', left: 10, right: 10, width: 'auto', maxHeight: 'calc(100dvh - 90px)'}
+        : {position: 'fixed', top: popoverTop, left: desktopLeft, right: 'auto', width: 360}}>
         <div className="notification-head">
             <div><strong>התראות</strong>{unread > 0 && <small>{unread} לא נקראו</small>}</div>
             <button title="סימון הכול כנקרא" onClick={markAll}><CheckCheck size={18}/></button>
@@ -91,7 +114,7 @@ export default function NotificationCenter() {
             </div>
             <ChevronLeft size={18}/></button>) : <p className="empty-note">אין התראות חדשות</p>}</div>;
     return <div className="notification-center">
-        <button className="icon-button" title="התראות" aria-expanded={open} onClick={() => setOpen(!open)}><Bell
+        <button ref={triggerRef} className="icon-button" title="התראות" aria-expanded={open} onClick={() => setOpen(!open)}><Bell
             size={20}/>{unread > 0 && <b>{unread}</b>}</button>
-        {open && (mobile ? createPortal(popover, document.body) : popover)}</div>
+        {open && createPortal(popover, document.body)}</div>
 }
