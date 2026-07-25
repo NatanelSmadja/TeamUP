@@ -17,11 +17,14 @@ export default function NotificationCenter() {
     const qc = useQueryClient();
     const navigate = useNavigate();
     const {data = []} = useQuery({
+        /**
+         this var is controlling the query and ui of notifications
+         **/
         queryKey: ['notifications', user?.id], enabled: !!user, queryFn: async () => {
             const {
                 data,
                 error
-            } = await supabase.from('notifications').select('*').eq('user_id', user!.id).order('created_at', {ascending: false}).limit(30);
+            } = await supabase.from('notifications').select('*').eq('user_id', user!.id).order('created_at', {ascending: false}).limit(5);
             if (error) throw error;
             return data || []
         }
@@ -96,7 +99,15 @@ export default function NotificationCenter() {
         navigate(target(n))
     };
     const popover = <div className="notification-popover" style={mobile
-        ? {position: 'fixed', top: popoverTop, bottom: 'auto', left: 10, right: 10, width: 'auto', maxHeight: 'calc(100dvh - 90px)'}
+        ? {
+            position: 'fixed',
+            top: popoverTop,
+            bottom: 'auto',
+            left: 10,
+            right: 10,
+            width: 'auto',
+            maxHeight: 'calc(100dvh - 90px)'
+        }
         : {position: 'fixed', top: popoverTop, left: desktopLeft, right: 'auto', width: 360}}>
         <div className="notification-head">
             <div><strong>התראות</strong>{unread > 0 && <small>{unread} לא נקראו</small>}</div>
@@ -114,7 +125,8 @@ export default function NotificationCenter() {
             </div>
             <ChevronLeft size={18}/></button>) : <p className="empty-note">אין התראות חדשות</p>}</div>;
     return <div className="notification-center">
-        <button ref={triggerRef} className="icon-button" title="התראות" aria-expanded={open} onClick={() => setOpen(!open)}><Bell
+        <button ref={triggerRef} className="icon-button" title="התראות" aria-expanded={open}
+                onClick={() => setOpen(!open)}><Bell
             size={20}/>{unread > 0 && <b>{unread}</b>}</button>
         {open && createPortal(popover, document.body)}</div>
 }
