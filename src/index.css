@@ -652,6 +652,66 @@ button {
     gap: 13px
 }
 
+.group-settings-save-bar {
+    position: sticky;
+    bottom: 14px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(88, 124, 166, .35);
+    border-radius: 18px;
+    background: rgba(9, 21, 37, .94);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, .36);
+    backdrop-filter: blur(14px)
+}
+
+.group-settings-save-bar > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8ca0ba;
+    font-size: 14px;
+    font-weight: 800
+}
+
+.group-settings-save-bar > div svg {
+    color: #2ecf7f
+}
+
+.group-settings-save-bar.is-dirty {
+    border-color: rgba(46, 207, 127, .5)
+}
+
+.save-label-mobile {
+    display: none
+}
+
+@media (max-width: 640px) {
+    .group-settings-save-bar {
+        bottom: calc(76px + env(safe-area-inset-bottom));
+        padding: 10px
+    }
+
+    .group-settings-save-bar > div span {
+        display: none
+    }
+
+    .group-settings-save-bar .btn-primary {
+        flex: 1
+    }
+
+    .save-label-desktop {
+        display: none
+    }
+
+    .save-label-mobile {
+        display: inline
+    }
+}
+
 .field-group-title {
     font-weight: 900
 }

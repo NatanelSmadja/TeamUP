@@ -42,10 +42,12 @@ export default function GroupSettingsPage() {
         poll_miss_tracking_enabled: false,
         poll_miss_alert_threshold: 2
     });
+    const [savedSettings, setSavedSettings] = useState('');
     const owner = isGroupOwner(g);
     const canManageMembers = canManage(g, 'manage_members');
     useEffect(() => {
-        if (g) setF({
+        if (g) {
+            const next = {
             name: g.group.name || '',
             description: g.group.description || '',
             default_location: g.group.default_location || '',
@@ -54,8 +56,12 @@ export default function GroupSettingsPage() {
             theme_color: g.group.theme_color || '#2563eb',
             poll_miss_tracking_enabled: g.group.poll_miss_tracking_enabled ?? false,
             poll_miss_alert_threshold: g.group.poll_miss_alert_threshold ?? 2
-        })
+            };
+            setF(next);
+            setSavedSettings(JSON.stringify(next));
+        }
     }, [g?.group.id]);
+    const hasUnsavedChanges = savedSettings !== '' && JSON.stringify(f) !== savedSettings;
     const requestsKey = ['join-requests', g?.group.id];
     const {data: requests = [], isLoading, error} = useQuery({
         queryKey: requestsKey,
@@ -116,7 +122,13 @@ export default function GroupSettingsPage() {
                 p_new: patch
             })
         }, onSuccess: () => {
-            toast.success('פרטי הקבוצה עודכנו');
+            const normalized = {
+                ...f,
+                poll_miss_alert_threshold: Math.max(1, Math.min(20, Number(f.poll_miss_alert_threshold) || 2))
+            };
+            setF(normalized);
+            setSavedSettings(JSON.stringify(normalized));
+            toast.success('הגדרות הקבוצה נשמרו');
             qc.invalidateQueries({queryKey: ['my-groups']});
             qc.invalidateQueries({queryKey: ['group-catalog']});
             qc.invalidateQueries({queryKey: ['group-audit']})
@@ -198,8 +210,7 @@ export default function GroupSettingsPage() {
                 <div><FieldHelp title="צבע המועדון"><Palette size={14}/> מוצג בכותרת ובכרטיסים.</FieldHelp><Input
                     type="color" value={f.theme_color} onChange={e => setF({...f, theme_color: e.target.value})}/></div>
             </div>
-            <Button disabled={!f.name.trim() || save.isPending} onClick={() => save.mutate()}>שמירת
-                שינויים</Button></Card>
+        </Card>
 
 
         <Card className="form-card">
@@ -250,13 +261,21 @@ export default function GroupSettingsPage() {
                 </div>
             </div>
 
+        </Card>
+
+        <div className={`group-settings-save-bar ${hasUnsavedChanges ? 'is-dirty' : ''}`}>
+            <div>
+                <Check size={20}/>
+                <span>{hasUnsavedChanges ? 'יש שינויים שעדיין לא נשמרו' : 'כל ההגדרות שמורות'}</span>
+            </div>
             <Button
-                disabled={save.isPending}
+                disabled={!f.name.trim() || !hasUnsavedChanges || save.isPending}
                 onClick={() => save.mutate()}
             >
-                שמירת הגדרת הסקרים
+                <Check size={18}/>
+                {save.isPending ? 'שומר...' : <><span className="save-label-desktop">שמירת כל הגדרות הקבוצה</span><span className="save-label-mobile">שמירה</span></>}
             </Button>
-        </Card>
+        </div>
 
 
         {owner && <Card>
