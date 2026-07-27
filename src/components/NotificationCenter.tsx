@@ -82,7 +82,7 @@ export default function NotificationCenter() {
         await supabase.from('notifications').update({is_read: true}).eq('user_id', user!.id).eq('is_read', false);
         qc.invalidateQueries({queryKey: ['notifications', user?.id]})
     };
-    const target = (n: any) => n.type === 'group_join_request' ? '/group-settings' : ['group_join_approved', 'group_join_rejected'].includes(n.type) ? '/groups' : n.entity_type === 'match' && n.entity_id ? `/matches/${n.entity_id}` : n.entity_type === 'poll' ? `/availability${n.entity_id ? `?poll=${n.entity_id}` : ''}` : n.entity_type === 'rating' ? '/ratings' : '/';
+    const target = (n: any) => n.type === 'group_join_request' ? '/group-settings' : n.type === 'poll_miss_threshold' ? '/admin?tab=members' : ['group_join_approved', 'group_join_rejected'].includes(n.type) ? '/groups' : n.entity_type === 'match' && n.entity_id ? `/matches/${n.entity_id}` : n.entity_type === 'poll' ? `/availability${n.entity_id ? `?poll=${n.entity_id}` : ''}` : n.entity_type === 'rating' ? '/ratings' : '/';
     const openNotification = async (n: any) => {
         if (!n.is_read) {
             await supabase.from('notifications').update({is_read: true}).eq('id', n.id).eq('user_id', user!.id);
@@ -91,7 +91,7 @@ export default function NotificationCenter() {
                 is_read: true
             } : x))
         }
-        if (n.type === 'group_join_request' && n.entity_id && user?.id) {
+        if (['group_join_request', 'poll_miss_threshold'].includes(n.type) && n.entity_id && user?.id) {
             localStorage.setItem(`teamup_active_group_id:${user.id}`, n.entity_id);
             window.dispatchEvent(new Event('teamup:group-change'))
         }

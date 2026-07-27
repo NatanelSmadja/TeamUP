@@ -19,7 +19,7 @@ const perms=[['create_match','פתיחת משחקים'],['close_registration','�
 type Tab='matches'|'polls'|'members';
 export default function AdminPage(){
  const {data:g}=useGroup();const {profile}=useAuth();const qc=useQueryClient();
- const [tab,setTab]=useState<Tab>('matches');const [open,setOpen]=useState(false);const [pollOpen,setPollOpen]=useState(false);const [selectedDay,setSelectedDay]=useState(2);
+ const [tab,setTab]=useState<Tab>(()=>new URLSearchParams(location.search).get('tab')==='members'?'members':'matches');const [open,setOpen]=useState(false);const [pollOpen,setPollOpen]=useState(false);const [selectedDay,setSelectedDay]=useState(2);
  const [f,setF]=useState({title:'משחק TEAMUP',match_date:nextWeekday(2),start_time:'21:00',end_time:'22:30',location:'Gol Time',capacity:'15',team_count:'3',team_size:'5',price_per_player:'0'});
  const [pollForm,setPollForm]=useState({title:'סקר זמינות למשחק',week_start:sundayOfWeek(0),description:''});
  const allowed=canManage(g);const isMainAdmin=g?.member.role==='admin';
