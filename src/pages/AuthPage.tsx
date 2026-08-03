@@ -7,36 +7,36 @@ import {Goal, Mail, LockKeyhole} from 'lucide-react';
 export default function AuthPage() {
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [busy, setBusy] = useState(false);
-    const [f, setF] = useState({
+    const [form, setForm] = useState({
         email: '',
         password: '',
         first_name: '',
         last_name: '',
         birth_date: '',
-        preferred_position: 'midfielder',
-        preferred_foot: 'right'
+        preferred_position: '',
+        preferred_foot: ''
     });
-    const set = (k: string, v: string) => setF(x => ({...x, [k]: v}));
-    const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const set = (key: string, value: string) => setForm(formObj => ({...formObj, [key]: value}));
+    const submit = async (event: React.FormEvent) => {
+        event.preventDefault();
         if (!isSupabaseConfigured) return toast.error('יש להגדיר קובץ .env.local');
         setBusy(true);
         try {
             if (mode === 'login') {
-                const {error} = await supabase.auth.signInWithPassword({email: f.email, password: f.password});
+                const {error} = await supabase.auth.signInWithPassword({email: form.email, password: form.password});
                 if (error) throw error
             } else {
                 const {error} = await supabase.auth.signUp({
-                    email: f.email,
-                    password: f.password,
+                    email: form.email,
+                    password: form.password,
                     options: {
                         data: {
-                            first_name: f.first_name,
-                            last_name: f.last_name,
-                            birth_date: f.birth_date,
-                            preferred_position: f.preferred_position,
-                            preferred_positions: [f.preferred_position],
-                            preferred_foot: f.preferred_foot
+                            first_name: form.first_name,
+                            last_name: form.last_name,
+                            birth_date: form.birth_date,
+                            preferred_position: form.preferred_position,
+                            preferred_positions: [form.preferred_position],
+                            preferred_foot: form.preferred_foot
                         }
                     }
                 });
@@ -56,13 +56,13 @@ export default function AuthPage() {
             <h1 className="text-3xl font-black">TEAMUP</h1><p className="mt-2 text-sm text-[#8fa097]">מנהלים סקר, הרשמה,
             קבוצות ודירוגים במקום אחד.</p></div>
         <form className="space-y-3" onSubmit={submit}>{mode === 'signup' && <>
-            <div className="grid grid-cols-2 gap-2"><Input placeholder="שם פרטי" value={f.first_name}
+            <div className="grid grid-cols-2 gap-2"><Input placeholder="שם פרטי" value={form.first_name}
                                                            onChange={e => set('first_name', e.target.value)}
-                                                           required/><Input placeholder="שם משפחה" value={f.last_name}
+                                                           required/><Input placeholder="שם משפחה" value={form.last_name}
                                                                             onChange={e => set('last_name', e.target.value)}
                                                                             required/></div>
-            <Input type="date" value={f.birth_date} onChange={e => set('birth_date', e.target.value)}/>
-            <div className="grid grid-cols-2 gap-2"><Select value={f.preferred_position}
+            <Input type="date" value={form.birth_date} onChange={e => set('birth_date', e.target.value)}/>
+            <div className="grid grid-cols-2 gap-2"><Select value={form.preferred_position}
                                                             onChange={e => set('preferred_position', e.target.value)}>
                 <option value="goalkeeper">שוער</option>
                 <option value="defender">מגן</option>
@@ -70,17 +70,17 @@ export default function AuthPage() {
                 <option value="winger">כנף</option>
                 <option value="striker">חלוץ</option>
                 <option value="utility">כללי</option>
-            </Select><Select value={f.preferred_foot} onChange={e => set('preferred_foot', e.target.value)}>
+            </Select><Select value={form.preferred_foot} onChange={e => set('preferred_foot', e.target.value)}>
                 <option value="right">ימין</option>
                 <option value="left">שמאל</option>
                 <option value="both">שתי רגליים</option>
             </Select></div>
         </>}
             <div className="flex flex-row items-center gap-1 form-control"><Mail className=" text-[#718078]" size={18}/><Input
-                className="!border-0 focus:!border-0 focus:!ring-0 !p-0" type="email" placeholder="אימייל" value={f.email}
+                className="!border-0 focus:!border-0 focus:!ring-0 !p-0" type="email" placeholder="אימייל" value={form.email}
                 onChange={e => set('email', e.target.value)} required/></div>
             <div className="flex flex-row items-center gap-1 form-control"><LockKeyhole className="text-[#718078]" size={18}/><Input
-                className="!border-0 focus:!border-0 focus:!ring-0 !p-0" type="password" minLength={6} placeholder="סיסמה" value={f.password}
+                className="!border-0 focus:!border-0 focus:!ring-0 !p-0" type="password" minLength={6} placeholder="סיסמה" value={form.password}
                 onChange={e => set('password', e.target.value)} required/></div>
             <Button disabled={busy}
                     className="w-full">{busy ? 'מתחבר...' : mode === 'login' ? 'כניסה ל־TEAMUP' : 'יצירת חשבון'}</Button>
