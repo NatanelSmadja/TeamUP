@@ -10,12 +10,15 @@ import {
     RefreshCw,
     Settings,
     ShieldCheck,
+    Trash2,
     UserPlus,
+    Users,
     X
 } from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge, Button, Card, FieldHelp, Input, Select} from '../components/ui';
-import {canManage, isGroupOwner, useGroup} from '../hooks/useGroup';
+import {canManage, isGroupOwner, isSystemAdmin, useGroup} from '../hooks/useGroup';
+import {useAuth} from '../contexts/AuthContext';
 import {supabase} from '../lib/supabase';
 import {fullName} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
@@ -31,6 +34,7 @@ type JoinRequest = {
 };
 export default function GroupSettingsPage() {
     const {data: g} = useGroup();
+    const {profile} = useAuth();
     const qc = useQueryClient();
     const [f, setF] = useState({
         name: '',
@@ -44,18 +48,19 @@ export default function GroupSettingsPage() {
     });
     const [savedSettings, setSavedSettings] = useState('');
     const owner = isGroupOwner(g);
+    const canAdministerCurrentGroup = !!g && (g.member.role === 'admin' || isSystemAdmin(profile));
     const canManageMembers = canManage(g, 'manage_members');
     useEffect(() => {
         if (g) {
             const next = {
-            name: g.group.name || '',
-            description: g.group.description || '',
-            default_location: g.group.default_location || '',
-            visibility: g.group.visibility || 'public',
-            join_mode: g.group.join_mode || 'approval_required',
-            theme_color: g.group.theme_color || '#2563eb',
-            poll_miss_tracking_enabled: g.group.poll_miss_tracking_enabled ?? false,
-            poll_miss_alert_threshold: g.group.poll_miss_alert_threshold ?? 2
+                name: g.group.name || '',
+                description: g.group.description || '',
+                default_location: g.group.default_location || '',
+                visibility: g.group.visibility || 'public',
+                join_mode: g.group.join_mode || 'approval_required',
+                theme_color: g.group.theme_color || '#2563eb',
+                poll_miss_tracking_enabled: g.group.poll_miss_tracking_enabled ?? false,
+                poll_miss_alert_threshold: g.group.poll_miss_alert_threshold ?? 2
             };
             setF(next);
             setSavedSettings(JSON.stringify(next));
@@ -72,18 +77,21 @@ export default function GroupSettingsPage() {
             return (data || []) as JoinRequest[]
         }
     });
-    const {data: members = []} = useQuery({
-        queryKey: ['settings-members', g?.group.id],
-        enabled: !!g && owner,
+    const membersKey = ['settings-members', g?.group.id];
+    const {data: members = [], isLoading: membersLoading, error: membersError} = useQuery({
+        queryKey: membersKey,
+        enabled: !!g && canAdministerCurrentGroup,
         queryFn: async () => {
             const {
                 data,
                 error
-            } = await supabase.from('group_members').select('user_id,role,status,profiles(first_name,last_name)').eq('group_id', g!.group.id).eq('status', 'active');
+            } = await supabase.from('group_members').select('id,user_id,role,status,joined_at,profiles(first_name,last_name)').eq('group_id', g!.group.id).order('joined_at');
             if (error) throw error;
             return data || []
         }
     });
+    const activeMembers = members.filter((member: any) => member.status === 'active');
+    const archivedMembers = members.filter((member: any) => member.status !== 'active');
     const {data: audit = []} = useQuery({
         queryKey: ['group-audit', g?.group.id],
         enabled: !!g && canManageMembers,
@@ -97,6 +105,7 @@ export default function GroupSettingsPage() {
         }
     });
     useRealtimeInvalidation(`join-requests-${g?.group.id}`, ['group_join_requests'], [requestsKey], !!g && canManageMembers);
+    useRealtimeInvalidation(`settings-members-${g?.group.id}`, ['group_members', 'profiles'], [membersKey], !!g && canAdministerCurrentGroup);
     const save = useMutation({
         mutationFn: async () => {
             const before = g!.group;
@@ -174,6 +183,26 @@ export default function GroupSettingsPage() {
             qc.invalidateQueries();
             location.reload()
         }, onError: (e: any) => toast.error(e.message)
+    });
+    const updateMember = useMutation({
+        mutationFn: async ({memberId, action}: { memberId: string; action: 'archive' | 'restore' | 'delete' }) => {
+            const {error} = action === 'restore'
+                ? await supabase.rpc('restore_group_member', {p_member_id: memberId})
+                : await supabase.rpc('remove_group_member', {
+                    p_member_id: memberId,
+                    p_permanent: action === 'delete'
+                });
+            if (error) throw error;
+            return action;
+        },
+        onSuccess: action => {
+            toast.success(action === 'restore' ? 'השחקן הוחזר לקבוצה' : action === 'delete' ? 'השחקן הוסר מהקבוצה' : 'השחקן הועבר לארכיון');
+            qc.invalidateQueries({queryKey: membersKey});
+            qc.invalidateQueries({queryKey: ['admin-members', g?.group.id]});
+            qc.invalidateQueries({queryKey: ['squad', g?.group.id]});
+            qc.invalidateQueries({queryKey: ['my-groups']});
+        },
+        onError: (e: any) => toast.error(e.message)
     });
     const inviteUrl = useMemo(() => g?.group.invite_code ? `${location.origin}/join/${g.group.invite_code}` : '', [g?.group.invite_code]);
     if (!canManage(g)) return <Card>אין לך הרשאת ניהול לקבוצה הזאת.</Card>;
@@ -273,7 +302,8 @@ export default function GroupSettingsPage() {
                 onClick={() => save.mutate()}
             >
                 <Check size={18}/>
-                {save.isPending ? 'שומר...' : <><span className="save-label-desktop">שמירת כל הגדרות הקבוצה</span><span className="save-label-mobile">שמירה</span></>}
+                {save.isPending ? 'שומר...' : <><span className="save-label-desktop">שמירת כל הגדרות הקבוצה</span><span
+                    className="save-label-mobile">שמירה</span></>}
             </Button>
         </div>
 
@@ -303,6 +333,39 @@ export default function GroupSettingsPage() {
                     <div><Button onClick={() => review(r.request_id, true)}><Check size={16}/>אישור</Button><Button
                         variant="danger" onClick={() => review(r.request_id, false)}><X size={16}/>דחייה</Button></div>
                 </div>)}{!requests.length && <p className="empty-inline">אין בקשות שממתינות לאישור.</p>}</div>}</Card>}
+        {canAdministerCurrentGroup && <Card>
+            <div className="section-title"><h2><Users/>ניהול שחקנים</h2><Badge>{activeMembers.length} שחקנים פעילים</Badge></div>
+            <p className="empty-inline">כאן אפשר לראות את כל שמות השחקנים, להעביר שחקן לארכיון, לשחזר אותו או למחוק אותו לצמיתות.</p>
+            {archivedMembers.length > 0 && <p className="empty-inline">בארכיון: {archivedMembers.length}</p>}
+            {membersLoading ? <p className="empty-inline">טוען שחקנים...</p> : membersError ?
+                <p className="empty-inline">לא הצלחנו לטעון את השחקנים: {membersError instanceof Error ? membersError.message : 'שגיאה'}</p> :
+                <div className="member-admin-grid">{members.map((member: any) => {
+                    const isAdmin = member.role === 'admin';
+                    const isActive = member.status === 'active';
+                    const name = fullName(member.profiles as any);
+                    return <Card key={member.id} className={!isActive ? 'member-inactive' : ''}>
+                        <div className="member-head">
+                            <div className="player-avatar">{member.profiles?.first_name?.[0] || 'ש'}</div>
+                            <div><h2>{name}</h2><p>{isAdmin ? 'מנהל הקבוצה' : isActive ? 'שחקן פעיל' : 'שחקן בארכיון'}</p></div>
+                        </div>
+                        {!isAdmin && <div className="action-row mt-4">
+                            {isActive ? <>
+                                <Button variant="secondary" disabled={updateMember.isPending}
+                                        onClick={() => confirm(`להעביר את ${name} לארכיון?`) && updateMember.mutate({memberId: member.id, action: 'archive'})}>
+                                    <Archive size={17}/>העברה לארכיון
+                                </Button>
+                                <Button variant="danger" disabled={updateMember.isPending}
+                                        onClick={() => confirm(`להסיר את ${name} מהקבוצה לצמיתות? החשבון שלו וקבוצות אחרות לא ייפגעו.`) && updateMember.mutate({memberId: member.id, action: 'delete'})}>
+                                    <Trash2 size={17}/>הסרה מהקבוצה
+                                </Button>
+                            </> : <Button disabled={updateMember.isPending}
+                                          onClick={() => updateMember.mutate({memberId: member.id, action: 'restore'})}>
+                                <UserPlus size={17}/>שחזור שחקן
+                            </Button>}
+                        </div>}
+                    </Card>
+                })}{!members.length && <p className="empty-inline">אין שחקנים בקבוצה.</p>}</div>}
+        </Card>}
         {owner && <Card>
             <div className="section-title"><h2><ShieldCheck/>בעלות ומחזור חיים</h2><Badge>פעולות רגישות</Badge></div>
             <div className="form-grid">
@@ -310,7 +373,7 @@ export default function GroupSettingsPage() {
                     defaultValue=""
                     onChange={e => e.target.value && confirm('להעביר בעלות?') && transfer.mutate(e.target.value)}>
                     <option value="">בחר חבר...</option>
-                    {members.filter((m: any) => m.user_id !== g?.member.user_id).map((m: any) => <option key={m.user_id}
+                    {activeMembers.filter((m: any) => m.user_id !== g?.member.user_id).map((m: any) => <option key={m.user_id}
                                                                                                          value={m.user_id}>{fullName(m.profiles as any)}</option>)}
                 </Select></div>
             </div>
