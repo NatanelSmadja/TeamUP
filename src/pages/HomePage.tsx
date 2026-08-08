@@ -6,7 +6,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useGroup} from '../hooks/useGroup';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {supabase} from '../lib/supabase';
-import {fullName,statusLabel} from '../lib/utils';
+import {fullName,isPollPast,statusLabel} from '../lib/utils';
 import type {Match,Registration} from '../types';
 import GroupDashboardCard from '../components/GroupDashboardCard';
 
@@ -23,7 +23,7 @@ export default function HomePage(){
   const matchRows=(matches||[]) as Match[];const regsByMatch:Record<string,Registration[]>={};
   if(matchRows.length){const {data:regs}=await supabase.from('match_registrations').select('*,profiles(*)').in('match_id',matchRows.map(m=>m.id)).order('registered_at');for(const r of (regs||[]) as Registration[])(regsByMatch[r.match_id]??=[]).push(r)}
   const statMap=new Map((stats||[]).map((x:any)=>[x.user_id,x]));const rows=(members||[]).map((m:any)=>{const st:any=statMap.get(m.user_id);return{...m,mvp:Number(st?.mvp_count||0),rating:Number(st?.avg_rating??m.profiles.base_rating??3)}}).sort((a:any,b:any)=>b.mvp-a.mvp||b.rating-a.rating);
-  return{matches:matchRows,regsByMatch,polls:polls||[],activity:activity||[],leader:rows[0],myRating:rows.find((x:any)=>x.user_id===user?.id)};
+  return{matches:matchRows,regsByMatch,polls:(polls||[]).filter((p:any)=>!isPollPast(p.week_start)),activity:activity||[],leader:rows[0],myRating:rows.find((x:any)=>x.user_id===user?.id)};
  }});
  useRealtimeInvalidation(`v25home-${g?.group.id}`,['matches','match_registrations','weekly_polls','availability_votes','activity_events','player_public_stats'],[key],!!g);
  const featured=data?.matches[0];const featuredRegs=featured?data?.regsByMatch[featured.id]||[]:[];const confirmed=featuredRegs.filter(x=>x.registration_status==='confirmed').length;const myReg=featuredRegs.find(x=>x.user_id===user?.id);const activePoll=data?.polls[0];const votes:any[]=activePoll?.availability_votes||[];const dayCounts=[0,1,2,3,4,5,6].map(day=>({day,count:votes.filter(v=>v.day_of_week===day).length})).sort((a,b)=>b.count-a.count);
