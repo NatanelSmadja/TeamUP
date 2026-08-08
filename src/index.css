@@ -874,6 +874,18 @@ button {
     border-style: dashed
 }
 
+.system-user-clickable {
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease
+}
+
+.system-user-clickable:hover, .system-user-clickable:focus-visible {
+    outline: none;
+    transform: translateY(-1px);
+    border-color: #4e78aa;
+    background: #13253d
+}
+
 .system-user-details {
     min-width: 0;
     display: flex;
@@ -916,12 +928,109 @@ button {
     min-width: 0
 }
 
+.system-player-layer { z-index: 135 }
+
+.system-player-modal {
+    width: min(860px, 100%);
+    overflow-y: auto
+}
+
+.system-player-card {
+    display: flex;
+    flex-direction: column;
+    gap: 18px
+}
+
+.system-player-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border: 1px solid #29415e;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #142b45, #0d1b2e)
+}
+
+.system-player-hero h2 { font-size: 24px }
+.system-player-hero p { margin-top: 5px; color: #b0bfd1 }
+.system-player-hero small { display: block; margin-top: 7px; color: #7f94ad }
+
+.system-player-avatar {
+    width: 76px;
+    height: 76px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 22px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #23a77a, #2975b5);
+    color: white;
+    font-size: 30px;
+    font-weight: 900
+}
+
+.system-player-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px
+}
+
+.system-player-stats .card {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 14px
+}
+
+.system-player-stats svg { color: #49c99d }
+.system-player-stats strong { font-size: 22px }
+.system-player-stats span { color: #91a0b4; font-size: 12px }
+
+.system-player-groups { display: flex; flex-direction: column; gap: 10px }
+
+.system-player-group {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px;
+    border: 1px solid #263b55;
+    border-radius: 16px;
+    background: #0e1d31
+}
+
+.system-player-group.is-archived { opacity: .62; border-style: dashed }
+.system-player-group small { display: flex; align-items: center; gap: 4px; color: #758ba5 }
+
+.system-player-group-stats {
+    display: flex;
+    gap: 8px
+}
+
+.system-player-group-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 9px;
+    background: #172b43;
+    color: #c2d0df;
+    font-size: 12px;
+    font-weight: 800
+}
+
 @media (max-width: 640px) {
     .system-users-modal-layer { padding: 8px }
     .system-users-modal { max-height: calc(100vh - 16px) }
     .system-user-row { grid-template-columns: auto minmax(0, 1fr) }
     .system-user-row > .action-row { grid-column: 1 / -1 }
     .system-user-row > .action-row button { flex: 1 }
+    .system-player-hero { align-items: flex-start; padding: 14px }
+    .system-player-avatar { width: 60px; height: 60px; border-radius: 18px }
+    .system-player-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .system-player-group { grid-template-columns: auto minmax(0, 1fr) }
+    .system-player-group-stats { grid-column: 1 / -1; justify-content: stretch }
+    .system-player-group-stats span { flex: 1; justify-content: center }
 }
 
 .topbar-actions {
@@ -1781,6 +1890,44 @@ body {
     gap: 18px
 }
 
+.player-page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px
+}
+
+.my-player-card-link { display: block }
+
+.my-player-card-link .card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    border-color: #315b80;
+    background: linear-gradient(135deg, #153a58, #10243d);
+    transition: transform .18s ease, border-color .18s ease
+}
+
+.my-player-card-link:hover .card, .my-player-card-link:focus-visible .card {
+    transform: translateY(-2px);
+    border-color: #4fc8a0
+}
+
+.my-player-card-link small { color: #58d4aa; font-weight: 900; letter-spacing: .08em }
+.my-player-card-link h2 { margin-top: 3px; font-size: 21px }
+.my-player-card-link p { margin-top: 3px; color: #9fb1c6 }
+
+.my-player-card-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 17px;
+    color: #0b1c2d;
+    background: linear-gradient(135deg, #f5c451, #52d5a9)
+}
+
 .back-link {
     display: flex;
     align-items: center;
@@ -2254,6 +2401,9 @@ body {
         grid-template-columns:auto 1fr;
         padding: 20px
     }
+
+    .player-page-actions { align-items: stretch }
+    .player-page-actions .btn-secondary { padding: 10px 13px }
 
     .player-card-avatar {
         width: 74px;

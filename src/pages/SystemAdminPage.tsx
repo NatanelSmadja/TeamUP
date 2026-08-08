@@ -2,10 +2,15 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
+  CalendarDays,
   Database,
+  Footprints,
+  Goal,
   RefreshCw,
+  Star,
   ShieldCheck,
   Trash2,
+  Trophy,
   UserRoundSearch,
   UsersRound,
   X,
@@ -15,12 +20,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { isSystemAdmin } from "../hooks/useGroup";
 import { toast } from "sonner";
+import { footLabel, positionLabel } from "../lib/utils";
 
 export default function SystemAdminPage() {
   const { profile } = useAuth();
   const qc = useQueryClient();
   const [usersOpen, setUsersOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
   const allowed = isSystemAdmin(profile);
@@ -57,6 +64,15 @@ export default function SystemAdminPage() {
       return data || [];
     },
   });
+  const userDetail = useQuery({
+    queryKey: ["system-user-detail", selectedUserId],
+    enabled: allowed && !!selectedUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("system_admin_user_detail", {p_user_id: selectedUserId});
+      if (error) throw error;
+      return data as any;
+    },
+  });
   const archive = useMutation({
     mutationFn: async ({ id, restore }: { id: string; restore: boolean }) => {
       const { error } = await supabase.rpc("archive_group", {
@@ -86,6 +102,8 @@ export default function SystemAdminPage() {
       qc.invalidateQueries({ queryKey: ["system-users"] });
       qc.invalidateQueries({ queryKey: ["system-overview"] });
       qc.invalidateQueries({ queryKey: ["system-groups"] });
+      qc.invalidateQueries({ queryKey: ["system-user-detail"] });
+      if (action === "delete") setSelectedUserId(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -144,13 +162,15 @@ export default function SystemAdminPage() {
             {visibleUsers.map((user: any) => {
               const name = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "משתמש ללא שם";
               const archived = user.lifecycle_status === "archived";
-              return <div className={`system-user-row ${archived ? "is-archived" : ""}`} key={user.user_id}>
+              return <div className={`system-user-row system-user-clickable ${archived ? "is-archived" : ""}`} key={user.user_id}
+                          role="button" tabIndex={0} onClick={() => setSelectedUserId(user.user_id)}
+                          onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && setSelectedUserId(user.user_id)}>
                 <div className="player-avatar">{user.first_name?.[0] || "ש"}</div>
                 <div className="system-user-details">
                   <strong>{name}</strong>
                   <span>{user.is_system_admin ? "אדמין מערכת" : archived ? "בארכיון" : "משתמש פעיל"} · {user.group_count} קבוצות</span>
                 </div>
-                {!user.is_system_admin && <div className="action-row">
+                {!user.is_system_admin && <div className="action-row" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                   {archived ? <Button disabled={manageUser.isPending} onClick={() => manageUser.mutate({id: user.user_id, action: "restore"})}>
                     <RefreshCw size={16}/>שחזור
                   </Button> : <Button variant="secondary" disabled={manageUser.isPending}
@@ -166,6 +186,18 @@ export default function SystemAdminPage() {
             })}
             {!users.isLoading && !users.error && !visibleUsers.length && <p className="empty-inline">לא נמצאו משתמשים.</p>}
           </div>
+        </Card>
+      </div>}
+      {selectedUserId && <div className="system-users-modal-layer system-player-layer" role="dialog" aria-modal="true" aria-labelledby="system-player-title"
+                              onMouseDown={(event) => event.target === event.currentTarget && setSelectedUserId(null)}>
+        <Card className="system-users-modal system-player-modal">
+          <div className="section-title">
+            <div><h2 id="system-player-title"><UserRoundSearch/>כרטיס שחקן</h2><p>פרופיל, קבוצות וסטטיסטיקות מערכת</p></div>
+            <Button variant="ghost" aria-label="סגירת כרטיס שחקן" onClick={() => setSelectedUserId(null)}><X size={20}/></Button>
+          </div>
+          {userDetail.isLoading && <p className="empty-inline">טוען את כרטיס השחקן...</p>}
+          {userDetail.error && <p className="empty-inline">לא הצלחנו לטעון את הכרטיס: {userDetail.error instanceof Error ? userDetail.error.message : "שגיאה"}</p>}
+          {userDetail.data && <SystemPlayerCard data={userDetail.data}/>}
         </Card>
       </div>}
       {groupsOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
@@ -203,4 +235,31 @@ export default function SystemAdminPage() {
       </div>}
     </div>
   );
+}
+
+function SystemPlayerCard({data}:{data:any}) {
+  const p=data.profile||{};const s=data.summary||{};const groups=data.groups||[];
+  const name=`${p.first_name||""} ${p.last_name||""}`.trim()||"משתמש ללא שם";
+  const positions=(p.preferred_positions?.length?p.preferred_positions:[p.preferred_position,p.secondary_position]).filter(Boolean).map(positionLabel);
+  return <div className="system-player-card">
+    <section className="system-player-hero">
+      {p.avatar_url?<img src={p.avatar_url} alt="" className="system-player-avatar"/>:<div className="system-player-avatar">{p.first_name?.[0]||"ש"}</div>}
+      <div><div className="system-group-name"><h2>{name}</h2><Badge>{p.lifecycle_status==='archived'?'בארכיון':p.is_system_admin?'אדמין מערכת':'פעיל'}</Badge></div><p>{positions.join(' · ')||'ללא עמדה'} · רגל {footLabel(p.preferred_foot)}</p><small>{p.birth_date?`תאריך לידה ${new Date(`${p.birth_date}T12:00:00`).toLocaleDateString('he-IL')} · `:''}הצטרף למערכת ב־{new Date(p.created_at).toLocaleDateString('he-IL')}</small></div>
+    </section>
+    <div className="system-player-stats">
+      <Card><Goal/><strong>{Number(s.goals||0)}</strong><span>שערים</span></Card>
+      <Card><Star/><strong>{Number(s.avg_rating||p.base_rating||3).toFixed(2)}</strong><span>דירוג</span></Card>
+      <Card><Trophy/><strong>{Number(s.mvp||0)}</strong><span>MVP</span></Card>
+      <Card><Footprints/><strong>{Number(s.games||0)}</strong><span>משחקים</span></Card>
+    </div>
+    <section className="system-player-groups">
+      <div className="section-title"><h3><UsersRound size={19}/>קבוצות של השחקן</h3><Badge>{Number(s.groups||0)} פעילות</Badge></div>
+      {groups.map((group:any)=><div className={`system-player-group ${group.membership_status!=='active'||group.group_status!=='active'?'is-archived':''}`} key={group.group_id}>
+        <div className="system-group-icon">{group.name?.slice(0,2)||'קב'}</div>
+        <div className="system-user-details"><div className="system-group-name"><strong>{group.name}</strong>{group.is_owner&&<Badge>בעלים</Badge>}</div><span>{group.role==='admin'||group.role==='moderator'?'מנהל קבוצה':'שחקן'} · {group.membership_status==='active'?'חבר פעיל':'חברות לא פעילה'}{group.group_status!=='active'?' · הקבוצה בארכיון':''}</span><small><CalendarDays size={13}/> הצטרף {new Date(group.joined_at).toLocaleDateString('he-IL')}</small></div>
+        <div className="system-player-group-stats"><span><Goal size={14}/>{group.goals||0}</span><span><Star size={14}/>{Number(group.avg_rating||3).toFixed(2)}</span><span><Footprints size={14}/>{group.games||0}</span></div>
+      </div>)}
+      {!groups.length&&<p className="empty-inline">השחקן אינו משויך לאף קבוצה.</p>}
+    </section>
+  </div>;
 }
