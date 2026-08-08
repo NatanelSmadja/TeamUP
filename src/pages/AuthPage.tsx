@@ -13,8 +13,8 @@ export default function AuthPage() {
         first_name: '',
         last_name: '',
         birth_date: '',
-        preferred_position: 'midfielder',
-        preferred_foot: 'right'
+        preferred_position: '',
+        preferred_foot: ''
     });
     const set = (k: string, v: string) => setF(x => ({...x, [k]: v}));
     const submit = async (e: React.FormEvent) => {
@@ -62,15 +62,19 @@ export default function AuthPage() {
                                                                             onChange={e => set('last_name', e.target.value)}
                                                                             required/></div>
             <Input type="date" value={f.birth_date} onChange={e => set('birth_date', e.target.value)}/>
-            <div className="grid grid-cols-2 gap-2"><Select value={f.preferred_position}
+            <div className="grid grid-cols-2 gap-2"><Select value={f.preferred_position} required
+                                                            aria-label="עמדה מועדפת"
                                                             onChange={e => set('preferred_position', e.target.value)}>
+                <option value="" disabled>בחירת עמדה</option>
                 <option value="goalkeeper">שוער</option>
                 <option value="defender">מגן</option>
                 <option value="midfielder">קשר</option>
                 <option value="winger">כנף</option>
                 <option value="striker">חלוץ</option>
                 <option value="utility">כללי</option>
-            </Select><Select value={f.preferred_foot} onChange={e => set('preferred_foot', e.target.value)}>
+            </Select><Select value={f.preferred_foot} required aria-label="רגל מועדפת"
+                             onChange={e => set('preferred_foot', e.target.value)}>
+                <option value="" disabled>בחירת רגל</option>
                 <option value="right">ימין</option>
                 <option value="left">שמאל</option>
                 <option value="both">שתי רגליים</option>
