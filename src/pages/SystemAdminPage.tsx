@@ -19,9 +19,10 @@ import { toast } from "sonner";
 export default function SystemAdminPage() {
   const { profile } = useAuth();
   const qc = useQueryClient();
-  const [page, setPage] = useState(0);
   const [usersOpen, setUsersOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
   const allowed = isSystemAdmin(profile);
   const overview = useQuery({
     queryKey: ["system-overview"],
@@ -33,12 +34,12 @@ export default function SystemAdminPage() {
     },
   });
   const groups = useQuery({
-    queryKey: ["system-groups", page],
-    enabled: allowed,
+    queryKey: ["system-groups"],
+    enabled: allowed && groupsOpen,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("system_admin_groups", {
-        p_limit: 20,
-        p_offset: page * 20,
+        p_limit: 100,
+        p_offset: 0,
       });
       if (error) throw error;
       return data || [];
@@ -100,6 +101,9 @@ export default function SystemAdminPage() {
   const visibleUsers = (users.data || []).filter((user: any) =>
     `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase().includes(userSearch.trim().toLowerCase()),
   );
+  const visibleGroups = (groups.data || []).filter((group: any) =>
+    `${group.name || ""} ${group.owner_name || ""}`.toLowerCase().includes(groupSearch.trim().toLowerCase()),
+  );
   return (
     <div className="space-y-5">
       <div className="page-heading">
@@ -111,18 +115,18 @@ export default function SystemAdminPage() {
       </div>
       <div className="stats-grid">
         {[
-          {label: "משתמשים", value: s.users, clickable: true},
-          {label: "קבוצות פעילות", value: s.active_groups},
+          {label: "משתמשים", value: s.users, onOpen: () => setUsersOpen(true)},
+          {label: "קבוצות פעילות", value: s.active_groups, onOpen: () => setGroupsOpen(true)},
           {label: "משחקים", value: s.matches},
           {label: "בקשות ממתינות", value: s.pending_requests},
-        ].map(({label, value, clickable}) => (
-          <Card key={label} className={`stat-card ${clickable ? "system-stat-clickable" : ""}`}
-                role={clickable ? "button" : undefined} tabIndex={clickable ? 0 : undefined}
-                onClick={clickable ? () => setUsersOpen(true) : undefined}
-                onKeyDown={clickable ? (event) => (event.key === "Enter" || event.key === " ") && setUsersOpen(true) : undefined}>
+        ].map(({label, value, onOpen}) => (
+          <Card key={label} className={`stat-card ${onOpen ? "system-stat-clickable" : ""}`}
+                role={onOpen ? "button" : undefined} tabIndex={onOpen ? 0 : undefined}
+                onClick={onOpen}
+                onKeyDown={onOpen ? (event) => (event.key === "Enter" || event.key === " ") && onOpen() : undefined}>
             <strong>{value ?? "—"}</strong>
             <span>{label}</span>
-            {clickable && <small>לחיצה לצפייה וניהול</small>}
+            {onOpen && <small>לחיצה לצפייה וניהול</small>}
           </Card>
         ))}
       </div>
@@ -164,72 +168,39 @@ export default function SystemAdminPage() {
           </div>
         </Card>
       </div>}
-      <Card>
-        <div className="section-title">
-          <h2>
-            <UsersRound />
-            קבוצות בפלטפורמה
-          </h2>
-          <Badge>{s.groups ?? 0}</Badge>
-        </div>
-        <div className="admin-match-list">
-          {(groups.data || []).map((group: any) => (
-            <div className="admin-match-row" key={group.group_id}>
-              <div>
-                <Badge>
-                  {group.lifecycle_status === "active"
-                    ? "פעילה"
-                    : group.lifecycle_status === "archived"
-                      ? "בארכיון"
-                      : group.lifecycle_status}
-                </Badge>
-                <h2>{group.name}</h2>
-                <p>
-                  {group.owner_name} · {group.member_count} חברים ·{" "}
-                  {group.visibility === "public" ? "ציבורית" : "פרטית"}
-                </p>
-              </div>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  archive.mutate({
-                    id: group.group_id,
-                    restore: group.lifecycle_status !== "active",
-                  })
-                }
-              >
-                {group.lifecycle_status === "active" ? (
-                  <>
-                    <Archive size={16} />
-                    ארכיון
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={16} />
-                    שחזור
-                  </>
-                )}
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className="action-row mt-4">
-          <Button
-            variant="secondary"
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            הקודם
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={(groups.data || []).length < 20}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            הבא
-          </Button>
-        </div>
-      </Card>
+      {groupsOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
+                          onMouseDown={(event) => event.target === event.currentTarget && setGroupsOpen(false)}>
+        <Card className="system-users-modal">
+          <div className="section-title">
+            <div><h2 id="system-groups-title"><UsersRound/>קבוצות בפלטפורמה</h2><p>{s.active_groups ?? 0} פעילות · {s.archived_groups ?? 0} בארכיון</p></div>
+            <Button variant="ghost" aria-label="סגירת חלון" onClick={() => setGroupsOpen(false)}><X size={20}/></Button>
+          </div>
+          <Input autoFocus placeholder="חיפוש לפי שם קבוצה או בעלים..." value={groupSearch}
+                 onChange={(event) => setGroupSearch(event.target.value)}/>
+          <div className="system-users-list">
+            {groups.isLoading && <p className="empty-inline">טוען קבוצות...</p>}
+            {groups.error && <p className="empty-inline">לא הצלחנו לטעון קבוצות: {groups.error instanceof Error ? groups.error.message : "שגיאה"}</p>}
+            {visibleGroups.map((group: any) => {
+              const active = group.lifecycle_status === "active";
+              const status = active ? "פעילה" : group.lifecycle_status === "archived" ? "בארכיון" : group.lifecycle_status;
+              return <div className={`system-user-row system-group-row ${!active ? "is-archived" : ""}`} key={group.group_id}>
+                <div className="system-group-icon">{group.name?.slice(0, 2) || "קב"}</div>
+                <div className="system-user-details">
+                  <div className="system-group-name"><strong>{group.name}</strong><Badge>{status}</Badge></div>
+                  <span>בעלים: {group.owner_name || "לא הוגדר"} · {group.member_count} חברים · {group.visibility === "public" ? "ציבורית" : "פרטית"}</span>
+                </div>
+                <div className="action-row">
+                  <Button variant="secondary" disabled={archive.isPending}
+                          onClick={() => confirm(active ? `להעביר את ${group.name} לארכיון?` : `לשחזר את ${group.name}?`) && archive.mutate({id: group.group_id, restore: !active})}>
+                    {active ? <><Archive size={16}/>ארכיון</> : <><RefreshCw size={16}/>שחזור</>}
+                  </Button>
+                </div>
+              </div>;
+            })}
+            {!groups.isLoading && !groups.error && !visibleGroups.length && <p className="empty-inline">לא נמצאו קבוצות.</p>}
+          </div>
+        </Card>
+      </div>}
     </div>
   );
 }

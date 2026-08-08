@@ -892,6 +892,30 @@ button {
     font-size: 13px
 }
 
+.system-group-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1d6a54, #183c57);
+    color: #f4f7fb;
+    font-size: 13px;
+    font-weight: 900
+}
+
+.system-group-name {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.system-group-name strong {
+    min-width: 0
+}
+
 @media (max-width: 640px) {
     .system-users-modal-layer { padding: 8px }
     .system-users-modal { max-height: calc(100vh - 16px) }
