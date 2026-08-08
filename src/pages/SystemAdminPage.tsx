@@ -11,11 +11,12 @@ import {
   ShieldCheck,
   Trash2,
   Trophy,
+  UserPlus,
   UserRoundSearch,
   UsersRound,
   X,
 } from "lucide-react";
-import { Badge, Button, Card, Input } from "../components/ui";
+import { Badge, Button, Card, Input, Select } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { isSystemAdmin } from "../hooks/useGroup";
@@ -42,7 +43,7 @@ export default function SystemAdminPage() {
   });
   const groups = useQuery({
     queryKey: ["system-groups"],
-    enabled: allowed && groupsOpen,
+    enabled: allowed && (groupsOpen || !!selectedUserId),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("system_admin_groups", {
         p_limit: 100,
@@ -104,6 +105,20 @@ export default function SystemAdminPage() {
       qc.invalidateQueries({ queryKey: ["system-groups"] });
       qc.invalidateQueries({ queryKey: ["system-user-detail"] });
       if (action === "delete") setSelectedUserId(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const assignUser = useMutation({
+    mutationFn: async ({userId, groupId}: {userId: string; groupId: string}) => {
+      const {error} = await supabase.rpc("system_admin_assign_user_to_group", {p_user_id: userId, p_group_id: groupId});
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("השחקן שויך לקבוצה");
+      qc.invalidateQueries({queryKey: ["system-user-detail", selectedUserId]});
+      qc.invalidateQueries({queryKey: ["system-users"]});
+      qc.invalidateQueries({queryKey: ["system-groups"]});
+      qc.invalidateQueries({queryKey: ["system-overview"]});
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -197,7 +212,8 @@ export default function SystemAdminPage() {
           </div>
           {userDetail.isLoading && <p className="empty-inline">טוען את כרטיס השחקן...</p>}
           {userDetail.error && <p className="empty-inline">לא הצלחנו לטעון את הכרטיס: {userDetail.error instanceof Error ? userDetail.error.message : "שגיאה"}</p>}
-          {userDetail.data && <SystemPlayerCard data={userDetail.data}/>}
+          {userDetail.data && <SystemPlayerCard data={userDetail.data} allGroups={groups.data||[]} assigning={assignUser.isPending}
+                                                       onAssign={(groupId) => assignUser.mutate({userId:selectedUserId,groupId})}/>}
         </Card>
       </div>}
       {groupsOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
@@ -237,10 +253,14 @@ export default function SystemAdminPage() {
   );
 }
 
-function SystemPlayerCard({data}:{data:any}) {
+function SystemPlayerCard({data,allGroups,assigning,onAssign}:{data:any;allGroups:any[];assigning:boolean;onAssign:(groupId:string)=>void}) {
+  const [selectedGroup,setSelectedGroup]=useState('');
   const p=data.profile||{};const s=data.summary||{};const groups=data.groups||[];
   const name=`${p.first_name||""} ${p.last_name||""}`.trim()||"משתמש ללא שם";
   const positions=(p.preferred_positions?.length?p.preferred_positions:[p.preferred_position,p.secondary_position]).filter(Boolean).map(positionLabel);
+  const activeMemberships=new Set(groups.filter((group:any)=>group.membership_status==='active').map((group:any)=>group.group_id));
+  const availableGroups=allGroups.filter((group:any)=>group.lifecycle_status==='active'&&!activeMemberships.has(group.group_id));
+  const selected=availableGroups.some((group:any)=>group.group_id===selectedGroup)?selectedGroup:availableGroups[0]?.group_id||'';
   return <div className="system-player-card">
     <section className="system-player-hero">
       {p.avatar_url?<img src={p.avatar_url} alt="" className="system-player-avatar"/>:<div className="system-player-avatar">{p.first_name?.[0]||"ש"}</div>}
@@ -254,6 +274,7 @@ function SystemPlayerCard({data}:{data:any}) {
     </div>
     <section className="system-player-groups">
       <div className="section-title"><h3><UsersRound size={19}/>קבוצות של השחקן</h3><Badge>{Number(s.groups||0)} פעילות</Badge></div>
+      {p.lifecycle_status==='active'&&<div className="system-player-assign"><div><strong><UserPlus size={17}/>שיוך לקבוצה</strong><p>בחר קבוצה פעילה. חברות קודמת שאינה פעילה תשוחזר.</p></div>{availableGroups.length?<div className="system-player-assign-actions"><Select value={selected} onChange={(event)=>setSelectedGroup(event.target.value)}>{availableGroups.map((group:any)=><option key={group.group_id} value={group.group_id}>{group.name}</option>)}</Select><Button disabled={!selected||assigning} onClick={()=>confirm(`לשייך את ${name} לקבוצה ${availableGroups.find((group:any)=>group.group_id===selected)?.name}?`)&&onAssign(selected)}><UserPlus size={16}/>{assigning?'משייך...':'שיוך'}</Button></div>:<Badge>משויך לכל הקבוצות הפעילות</Badge>}</div>}
       {groups.map((group:any)=><div className={`system-player-group ${group.membership_status!=='active'||group.group_status!=='active'?'is-archived':''}`} key={group.group_id}>
         <div className="system-group-icon">{group.name?.slice(0,2)||'קב'}</div>
         <div className="system-user-details"><div className="system-group-name"><strong>{group.name}</strong>{group.is_owner&&<Badge>בעלים</Badge>}</div><span>{group.role==='admin'||group.role==='moderator'?'מנהל קבוצה':'שחקן'} · {group.membership_status==='active'?'חבר פעיל':'חברות לא פעילה'}{group.group_status!=='active'?' · הקבוצה בארכיון':''}</span><small><CalendarDays size={13}/> הצטרף {new Date(group.joined_at).toLocaleDateString('he-IL')}</small></div>

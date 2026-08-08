@@ -988,6 +988,36 @@ button {
 
 .system-player-groups { display: flex; flex-direction: column; gap: 10px }
 
+.system-player-assign {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid rgba(73, 201, 157, .28);
+    border-radius: 16px;
+    background: rgba(35, 167, 122, .08)
+}
+
+.system-player-assign > div > strong {
+    display: flex;
+    align-items: center;
+    gap: 7px
+}
+
+.system-player-assign p {
+    margin-top: 4px;
+    color: #8fa5bf;
+    font-size: 12px
+}
+
+.system-player-assign-actions {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    gap: 8px;
+    min-width: min(390px, 55%)
+}
+
 .system-player-group {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1031,6 +1061,8 @@ button {
     .system-player-group { grid-template-columns: auto minmax(0, 1fr) }
     .system-player-group-stats { grid-column: 1 / -1; justify-content: stretch }
     .system-player-group-stats span { flex: 1; justify-content: center }
+    .system-player-assign { align-items: stretch; flex-direction: column }
+    .system-player-assign-actions { grid-template-columns: 1fr; min-width: 0 }
 }
 
 .topbar-actions {
