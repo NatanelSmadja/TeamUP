@@ -14,7 +14,7 @@ const dayNames=['ראשון','שני','שלישי','רביעי','חמישי','ש
 const nextWeekday=(day:number)=>{const d=new Date();d.setHours(12,0,0,0);let add=(day-d.getDay()+7)%7;if(add===0)add=7;d.setDate(d.getDate()+add);return d.toISOString().slice(0,10)};
 const sundayOfWeek=(offset=0)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-d.getDay()+offset*7);return d.toISOString().slice(0,10)};
 const formatDate=(date:string)=>new Date(`${date}T12:00:00`).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-const perms=[['create_match','פתיחת משחקים'],['close_registration','סגירה ופתיחה של הרשמה'],['generate_teams','ערבוב קבוצות'],['open_ratings','פתיחת דירוגים'],['manage_members','ניהול שחקנים']];
+const perms=[['create_match','פתיחת משחקים'],['close_registration','סגירה ופתיחה של הרשמה'],['generate_teams','ערבוב קבוצות'],['enter_results','ניהול תוצאות ושערים'],['open_ratings','פתיחת דירוגים'],['manage_members','ניהול שחקנים']];
 
 type Tab='matches'|'polls'|'members';
 export default function AdminPage(){
