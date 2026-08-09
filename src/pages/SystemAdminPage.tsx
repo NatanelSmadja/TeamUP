@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Trash2,
   Trophy,
+  UserMinus,
   UserPlus,
   UserRoundSearch,
   UsersRound,
@@ -122,6 +123,20 @@ export default function SystemAdminPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+  const unassignUser = useMutation({
+    mutationFn: async ({userId, groupId}: {userId: string; groupId: string}) => {
+      const {error} = await supabase.rpc("system_admin_unassign_user_from_group", {p_user_id: userId, p_group_id: groupId});
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("השיוך לקבוצה הוסר");
+      qc.invalidateQueries({queryKey: ["system-user-detail", selectedUserId]});
+      qc.invalidateQueries({queryKey: ["system-users"]});
+      qc.invalidateQueries({queryKey: ["system-groups"]});
+      qc.invalidateQueries({queryKey: ["system-overview"]});
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   if (!allowed)
     return (
       <Card className="empty-state">
@@ -212,8 +227,9 @@ export default function SystemAdminPage() {
           </div>
           {userDetail.isLoading && <p className="empty-inline">טוען את כרטיס השחקן...</p>}
           {userDetail.error && <p className="empty-inline">לא הצלחנו לטעון את הכרטיס: {userDetail.error instanceof Error ? userDetail.error.message : "שגיאה"}</p>}
-          {userDetail.data && <SystemPlayerCard data={userDetail.data} allGroups={groups.data||[]} assigning={assignUser.isPending}
-                                                       onAssign={(groupId) => assignUser.mutate({userId:selectedUserId,groupId})}/>}
+          {userDetail.data && <SystemPlayerCard data={userDetail.data} allGroups={groups.data||[]} assigning={assignUser.isPending} unassigning={unassignUser.isPending}
+                                                       onAssign={(groupId) => assignUser.mutate({userId:selectedUserId,groupId})}
+                                                       onUnassign={(groupId) => unassignUser.mutate({userId:selectedUserId,groupId})}/>}
         </Card>
       </div>}
       {groupsOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
@@ -253,7 +269,7 @@ export default function SystemAdminPage() {
   );
 }
 
-function SystemPlayerCard({data,allGroups,assigning,onAssign}:{data:any;allGroups:any[];assigning:boolean;onAssign:(groupId:string)=>void}) {
+function SystemPlayerCard({data,allGroups,assigning,unassigning,onAssign,onUnassign}:{data:any;allGroups:any[];assigning:boolean;unassigning:boolean;onAssign:(groupId:string)=>void;onUnassign:(groupId:string)=>void}) {
   const [selectedGroup,setSelectedGroup]=useState('');
   const p=data.profile||{};const s=data.summary||{};const groups=data.groups||[];
   const name=`${p.first_name||""} ${p.last_name||""}`.trim()||"משתמש ללא שם";
@@ -278,7 +294,7 @@ function SystemPlayerCard({data,allGroups,assigning,onAssign}:{data:any;allGroup
       {groups.map((group:any)=><div className={`system-player-group ${group.membership_status!=='active'||group.group_status!=='active'?'is-archived':''}`} key={group.group_id}>
         <div className="system-group-icon">{group.name?.slice(0,2)||'קב'}</div>
         <div className="system-user-details"><div className="system-group-name"><strong>{group.name}</strong>{group.is_owner&&<Badge>בעלים</Badge>}</div><span>{group.role==='admin'||group.role==='moderator'?'מנהל קבוצה':'שחקן'} · {group.membership_status==='active'?'חבר פעיל':'חברות לא פעילה'}{group.group_status!=='active'?' · הקבוצה בארכיון':''}</span><small><CalendarDays size={13}/> הצטרף {new Date(group.joined_at).toLocaleDateString('he-IL')}</small></div>
-        <div className="system-player-group-stats"><span><Goal size={14}/>{group.goals||0}</span><span><Star size={14}/>{Number(group.avg_rating||3).toFixed(2)}</span><span><Footprints size={14}/>{group.games||0}</span></div>
+        <div className="system-player-group-actions"><div className="system-player-group-stats"><span><Goal size={14}/>{group.goals||0}</span><span><Star size={14}/>{Number(group.avg_rating||3).toFixed(2)}</span><span><Footprints size={14}/>{group.games||0}</span></div>{group.membership_status==='active'&&!group.is_owner&&<Button variant="danger" disabled={unassigning} onClick={()=>confirm(`להסיר את השיוך של ${name} מהקבוצה ${group.name}?`)&&onUnassign(group.group_id)}><UserMinus size={15}/>הסרת שיוך</Button>}</div>
       </div>)}
       {!groups.length&&<p className="empty-inline">השחקן אינו משויך לאף קבוצה.</p>}
     </section>

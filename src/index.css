@@ -1037,6 +1037,15 @@ button {
     gap: 8px
 }
 
+.system-player-group-actions {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px
+}
+
+.system-player-group-actions .btn-danger { padding: 7px 9px; font-size: 12px }
+
 .system-player-group-stats span {
     display: flex;
     align-items: center;
@@ -1059,8 +1068,10 @@ button {
     .system-player-avatar { width: 60px; height: 60px; border-radius: 18px }
     .system-player-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) }
     .system-player-group { grid-template-columns: auto minmax(0, 1fr) }
-    .system-player-group-stats { grid-column: 1 / -1; justify-content: stretch }
+    .system-player-group-actions { grid-column: 1 / -1; align-items: stretch }
+    .system-player-group-stats { justify-content: stretch }
     .system-player-group-stats span { flex: 1; justify-content: center }
+    .system-player-group-actions .btn-danger { justify-content: center }
     .system-player-assign { align-items: stretch; flex-direction: column }
     .system-player-assign-actions { grid-template-columns: 1fr; min-width: 0 }
 }
