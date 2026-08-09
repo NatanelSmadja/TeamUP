@@ -2,6 +2,7 @@ import {createContext,useContext,useEffect,useMemo,useRef,useState} from 'react'
 import type {Session,User} from '@supabase/supabase-js';
 import {supabase,isSupabaseConfigured} from '../lib/supabase';
 import type {Profile} from '../types';
+import {disablePushNotifications} from '../lib/pushNotifications';
 
 type Ctx={session:Session|null;user:User|null;profile:Profile|null;loading:boolean;passwordRecovery:boolean;finishPasswordRecovery:()=>void;signOut:()=>Promise<void>;refreshProfile:()=>Promise<void>};
 const AuthContext=createContext<Ctx|null>(null);
@@ -58,7 +59,7 @@ export function AuthProvider({children}:{children:React.ReactNode}){
   };
  },[]);
  const finishPasswordRecovery=()=>{setPasswordRecovery(false);window.history.replaceState({},document.title,window.location.pathname)};
- const value=useMemo(()=>({session,user:session?.user??null,profile,loading,passwordRecovery,finishPasswordRecovery,signOut:async()=>{setPasswordRecovery(false);loadedProfileUserId.current=null;setProfile(null);await supabase.auth.signOut()},refreshProfile:async()=>load(session?.user.id)}),[session,profile,loading,passwordRecovery]);
+ const value=useMemo(()=>({session,user:session?.user??null,profile,loading,passwordRecovery,finishPasswordRecovery,signOut:async()=>{setPasswordRecovery(false);try{await disablePushNotifications()}catch{}loadedProfileUserId.current=null;setProfile(null);await supabase.auth.signOut()},refreshProfile:async()=>load(session?.user.id)}),[session,profile,loading,passwordRecovery]);
  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export const useAuth=()=>{const c=useContext(AuthContext);if(!c)throw new Error('AuthProvider missing');return c};
