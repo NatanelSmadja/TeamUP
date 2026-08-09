@@ -1,10 +1,10 @@
 # TEAMUP Web Push deployment
 
-The application code, database schema and Edge Function are included in the repository. The following one-time infrastructure setup is required because private VAPID credentials must never be committed to Git.
+The application code, database schema and Edge Function are included in the repository. Private VAPID credentials must never be committed to Git.
 
-## 1. Apply the database migration
+## 1. Apply the database migrations
 
-Run `supabase/migrations/030_web_push_and_manager_notifications.sql` in the target Supabase project, or deploy all pending migrations with the normal project workflow.
+Deploy migrations `030_web_push_and_manager_notifications.sql` and `031_connect_push_notification_webhook.sql` with the normal project workflow. Migration 031 creates the asynchronous `notifications` insert trigger; it does not contain credentials.
 
 ## 2. Generate VAPID credentials
 
@@ -14,12 +14,12 @@ Generate one key pair for TEAMUP:
 npx web-push generate-vapid-keys
 ```
 
-Copy `supabase/functions/push-notifications/.env.example` to an ignored `.env` file in the same directory and fill in:
+Configure these Edge Function secrets:
 
 - `VAPID_PUBLIC_KEY`
 - `VAPID_PRIVATE_KEY`
-- `VAPID_SUBJECT` — a valid `mailto:` address or HTTPS URL controlled by the site owner
-- `PUSH_WEBHOOK_SECRET` — a long random value
+- `VAPID_SUBJECT` - a valid `mailto:` address or HTTPS URL controlled by the site owner
+- `PUSH_WEBHOOK_SECRET` - a long random value
 
 The public and private VAPID keys must remain the same after launch. Replacing them invalidates existing device subscriptions.
 
@@ -30,26 +30,22 @@ npx supabase secrets set --env-file supabase/functions/push-notifications/.env -
 npx supabase functions deploy push-notifications --project-ref YOUR_PROJECT_REF
 ```
 
-JWT verification should remain enabled. Signed-in users call the function only to retrieve the public VAPID key.
+JWT verification should remain enabled. Signed-in users call the function to retrieve the public VAPID key, while the database trigger authenticates with the service-role JWT and private webhook secret.
 
-## 4. Create the notification database webhook
+## 4. Store database webhook credentials
 
-In Supabase Dashboard, create a Database Webhook with these settings:
+The notification trigger reads its credentials from Supabase Vault. Store these two values there after applying migration 031:
 
-- Table: `public.notifications`
-- Event: `INSERT`
-- Destination: Supabase Edge Function `push-notifications`
-- Method: `POST`
-- Authorization: service-role authorization offered by the Dashboard
-- Additional header: `x-webhook-secret` with the exact `PUSH_WEBHOOK_SECRET` value
+- `teamup_push_webhook_secret` - the exact same value as the Edge Function's `PUSH_WEBHOOK_SECRET`
+- `teamup_push_service_role_key` - the project's legacy service-role JWT, used only to authorize the database-to-function request
 
-The function rejects notification-delivery calls without this private webhook header.
+Both values are encrypted at rest by Vault. The trigger calls the Edge Function asynchronously through `pg_net`, and the function rejects delivery calls without the private webhook header.
 
 ## 5. User flow
 
 1. Deploy the web application so its Service Worker is active.
 2. On iPhone/iPad, add TEAMUP to the Home Screen and open it from the icon. iOS 16.4 or newer is required.
-3. Open Profile → Application and notifications → Enable notifications.
+3. Open Profile -> Application and notifications -> Enable notifications.
 4. Accept the operating-system permission prompt.
 
 Only the approved device is registered in `push_subscriptions`. Disabling notifications in the profile unsubscribes and removes that device. In-app notifications continue to work regardless of Push approval.
