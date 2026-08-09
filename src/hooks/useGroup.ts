@@ -28,7 +28,6 @@ export function useGroup() {
     queryKey: ['my-groups', user?.id],
     enabled: !!user,
     refetchOnWindowFocus: true,
-    refetchInterval: 30000,
     queryFn: async () => {
       const {data, error} = await supabase.rpc('my_active_group_sessions');
       if (error) throw error;
