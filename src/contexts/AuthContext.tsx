@@ -3,13 +3,14 @@ import type {Session,User} from '@supabase/supabase-js';
 import {supabase,isSupabaseConfigured} from '../lib/supabase';
 import type {Profile} from '../types';
 
-type Ctx={session:Session|null;user:User|null;profile:Profile|null;loading:boolean;signOut:()=>Promise<void>;refreshProfile:()=>Promise<void>};
+type Ctx={session:Session|null;user:User|null;profile:Profile|null;loading:boolean;passwordRecovery:boolean;finishPasswordRecovery:()=>void;signOut:()=>Promise<void>;refreshProfile:()=>Promise<void>};
 const AuthContext=createContext<Ctx|null>(null);
 
 export function AuthProvider({children}:{children:React.ReactNode}){
  const [session,setSession]=useState<Session|null>(null);
  const [profile,setProfile]=useState<Profile|null>(null);
  const [loading,setLoading]=useState(true);
+ const [passwordRecovery,setPasswordRecovery]=useState(()=>window.location.hash.includes('type=recovery')||new URLSearchParams(window.location.search).get('type')==='recovery');
  const loadSequence=useRef(0);
  const loadedProfileUserId=useRef<string|null>(null);
  const load=async(uid?:string)=>{
@@ -30,7 +31,8 @@ export function AuthProvider({children}:{children:React.ReactNode}){
    await load(data.session?.user.id);
    if(mounted)setLoading(false);
   });
-  const {data:s}=supabase.auth.onAuthStateChange((_event,next)=>{
+  const {data:s}=supabase.auth.onAuthStateChange((event,next)=>{
+   if(event==='PASSWORD_RECOVERY')setPasswordRecovery(true);
    setSession(next);
    const nextUserId=next?.user.id;
    if(!nextUserId){loadedProfileUserId.current=null;setProfile(null)}
@@ -55,7 +57,8 @@ export function AuthProvider({children}:{children:React.ReactNode}){
    window.removeEventListener('online',refreshVisibleProfile);
   };
  },[]);
- const value=useMemo(()=>({session,user:session?.user??null,profile,loading,signOut:async()=>{loadedProfileUserId.current=null;setProfile(null);await supabase.auth.signOut()},refreshProfile:async()=>load(session?.user.id)}),[session,profile,loading]);
+ const finishPasswordRecovery=()=>{setPasswordRecovery(false);window.history.replaceState({},document.title,window.location.pathname)};
+ const value=useMemo(()=>({session,user:session?.user??null,profile,loading,passwordRecovery,finishPasswordRecovery,signOut:async()=>{setPasswordRecovery(false);loadedProfileUserId.current=null;setProfile(null);await supabase.auth.signOut()},refreshProfile:async()=>load(session?.user.id)}),[session,profile,loading,passwordRecovery]);
  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export const useAuth=()=>{const c=useContext(AuthContext);if(!c)throw new Error('AuthProvider missing');return c};
