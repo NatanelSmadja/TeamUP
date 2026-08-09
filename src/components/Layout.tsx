@@ -6,6 +6,7 @@ import {useGroup,canManage,isSystemAdmin} from '../hooks/useGroup';
 import {useAuth} from '../contexts/AuthContext';
 import AppInstallBanner from './AppInstallBanner';
 import NotificationCenter from './NotificationCenter';
+import {useRealtimeInvalidation} from '../hooks/useRealtime';
 
 const base=[
   ['/','בית',Home],
@@ -26,10 +27,12 @@ export default function Layout(){
   const {profile,signOut}=useAuth();
   const [moreOpen,setMoreOpen]=useState(false);
   const [groupOpen,setGroupOpen]=useState(false);
+  useRealtimeInvalidation(`active-group-permissions-${g?.member.user_id}`,['group_members','member_permissions'],[['my-groups']],!!g);
 
   const links=useMemo(()=>{
     const next:any[]=[...base];
-    if(canManage(g))next.push(['/admin','ניהול קבוצה',Shield],['/group-settings','הגדרות קבוצה',Settings]);
+    if(canManage(g))next.push(['/admin','ניהול קבוצה',Shield]);
+    if(canManage(g,'manage_members'))next.push(['/group-settings','הגדרות קבוצה',Settings]);
     if(isSystemAdmin(profile))next.push(['/system-admin','מערכת',Database]);
     return next;
   },[g,profile]);

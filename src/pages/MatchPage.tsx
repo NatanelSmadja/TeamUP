@@ -1,50 +1,489 @@
-import {useMemo,useState} from 'react';
-import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
+import {useMemo, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useParams} from 'react-router-dom';
-import {Check,Clock3,GripVertical,Lock,LockOpen,MessageCircle,RefreshCcw,Repeat2,ShieldCheck,Star,Undo2,UserX,Users} from 'lucide-react';
+import {Check, Clock3, GripVertical, Lock, LockOpen, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Undo2, UserX, Users} from 'lucide-react';
 import {toast} from 'sonner';
-import {Badge,Button,Card} from '../components/ui';import {MatchSkeleton} from '../components/Skeletons';
+import {Badge, Button, Card} from '../components/ui';
+import {MatchSkeleton} from '../components/Skeletons';
 import {useAuth} from '../contexts/AuthContext';
-import {fullName,statusLabel,positionLabel} from '../lib/utils';
+import {fullName, statusLabel, positionLabel} from '../lib/utils';
 import {supabase} from '../lib/supabase';
-import type {Match,Registration} from '../types';
+import type {Match, Registration} from '../types';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
-import {useGroup,canManage} from '../hooks/useGroup';
+import {useGroup, canManage} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
 
-const colorNames:any={red:'אדומים',blue:'כחולים',yellow:'צהובים',green:'ירוקים'};
-const calcBalance=(teams:any[])=>{const ratings=teams.map(t=>{const vals=t.team_players.map((p:any)=>Number(p.profiles?.base_rating||3));return vals.length?vals.reduce((a:number,b:number)=>a+b,0)/vals.length:0});return ratings.length?Math.max(0,Math.round(100-(Math.max(...ratings)-Math.min(...ratings))*20)):0};
+const colorNames: any = {
+  red: 'אדומים',
+  blue: 'כחולים',
+  yellow: 'צהובים',
+  green: 'ירוקים',
+};
+const calcBalance = (teams: any[]) => {
+  const ratings = teams.map((t) => {
+    const vals = t.team_players.map((p: any) => Number(p.profiles?.base_rating || 3));
+    return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
+  });
+  return ratings.length ? Math.max(0, Math.round(100 - (Math.max(...ratings) - Math.min(...ratings)) * 20)) : 0;
+};
 
-export default function MatchPage(){
- const {id}=useParams();const {user}=useAuth();const {data:g}=useGroup();const qc=useQueryClient();
- const [dragged,setDragged]=useState<string|null>(null);const [swapFirst,setSwapFirst]=useState<string|null>(null);const key=['match',id] as const;
- const q=useQuery({queryKey:key,enabled:!!id,refetchInterval:15000,queryFn:async()=>{const {data,error}=await supabase.rpc('get_member_match_details',{p_match_id:id});if(!error){const details=data as {match?:Match;regs?:Registration[];teams?:any[]}|null;if(details?.match){const teams=details.teams||[];const latest=teams.length?Math.max(...teams.map((x:any)=>x.generation_version)):0;return {match:details.match,regs:details.regs||[],teams:teams.filter((x:any)=>x.generation_version===latest)}}}console.error('[TEAMUP match] Falling back to direct match reads',{matchId:id,code:error?.code,message:error?.message,details:error?.details,hint:error?.hint,response:data});const {data:match,error:matchError}=await supabase.from('matches').select('*').eq('id',id).maybeSingle();if(matchError||!match){console.error('[TEAMUP match] Match row is not visible',{matchId:id,error:matchError});throw matchError||new Error('המשחק לא נמצא או שאין לך גישה אליו')}const [{data:regs,error:regsError},{data:teams,error:teamsError}]=await Promise.all([supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').eq('match_id',id).order('registered_at'),supabase.from('teams').select('*,team_players(*,profiles(*))').eq('match_id',id).eq('is_published',true).order('generation_version',{ascending:false}).order('team_number')]);if(regsError)console.warn('[TEAMUP match] Registrations were not available',{matchId:id,error:regsError});if(teamsError)console.warn('[TEAMUP match] Teams were not available',{matchId:id,error:teamsError});const rows=teams||[];const latest=rows.length?Math.max(...rows.map((x:any)=>x.generation_version)):0;return {match:match as Match,regs:(regs||[]) as Registration[],teams:rows.filter((x:any)=>x.generation_version===latest)}}});
- useRealtimeInvalidation(`match-${id}`,['matches','match_registrations','teams','team_players','player_ratings','team_edit_history','goal_events'],[key,['v2-home']],!!id);
- const mine=useMemo(()=>q.data?.regs.find(x=>x.user_id===user?.id),[q.data,user]);
- const act=useMutation({mutationFn:async(response:'attending'|'unavailable')=>{const {error}=await supabase.rpc('respond_to_match',{p_match_id:id,p_response:response});if(error)throw error},onSuccess:()=>{toast.success('הבחירה נשמרה');qc.invalidateQueries({queryKey:key})},onError:e=>toast.error(e.message)});
- const refresh=()=>qc.invalidateQueries({queryKey:key});
- const move=async(target:string)=>{if(!dragged)return;const before=calcBalance(q.data?.teams||[]);const {error}=await supabase.rpc('move_team_player',{p_match_id:id,p_user_id:dragged,p_target_team_id:target});if(error)toast.error(error.message);else{await refresh();toast.success(`השחקן הועבר. מדד האיזון לפני השינוי: ${before}%`)}setDragged(null)};
- const toggleLock=async(userId:string)=>{const {data,error}=await supabase.rpc('toggle_team_player_lock',{p_match_id:id,p_user_id:userId});if(error)toast.error(error.message);else{toast.success(data?'השחקן ננעל':'נעילת השחקן בוטלה');refresh()}};
- const selectSwap=async(userId:string)=>{if(!swapFirst){setSwapFirst(userId);toast('בחר עכשיו שחקן מקבוצה אחרת');return}if(swapFirst===userId){setSwapFirst(null);return}const {error}=await supabase.rpc('swap_team_players',{p_match_id:id,p_first_user:swapFirst,p_second_user:userId});if(error)toast.error(error.message);else{toast.success('השחקנים הוחלפו');refresh()}setSwapFirst(null)};
- const undo=async()=>{const {error}=await supabase.rpc('undo_last_team_edit',{p_match_id:id});if(error)toast.error(error.message);else{toast.success('השינוי האחרון בוטל');refresh()}};
- const rerandom=async()=>{if(!confirm('ליצור חלוקה חדשה? החלוקה הנוכחית תישאר בהיסטוריה.'))return;const {error}=await supabase.rpc('regenerate_balanced_teams',{p_match_id:id});if(error)toast.error(error.message);else{toast.success('נוצרה חלוקה חדשה');refresh()}};
- const attendance=useMutation({mutationFn:async({userId,attended}:{userId:string|null;attended:boolean})=>{const {error}=await supabase.rpc('set_match_attendance',{p_match_id:id,p_user_id:userId,p_attended:attended});if(error)throw error},onSuccess:()=>{toast.success('הנוכחות עודכנה');refresh()},onError:(e:any)=>toast.error(e.message)});
- const ratingsWindow=useMutation({mutationFn:async(open:boolean)=>{const {error}=await supabase.rpc(open?'open_match_ratings':'close_match_ratings',{p_match_id:id});if(error)throw error;return open},onSuccess:(open)=>{toast.success(open?'הדירוג נפתח לשבעה ימים':'הדירוג נסגר');refresh();qc.invalidateQueries({queryKey:['admin-matches']});qc.invalidateQueries({queryKey:['open-ratings']})},onError:(e:any)=>toast.error(e.message)});
- const shareTeams=async()=>{if(!q.data?.teams.length)return;const m=q.data.match;const lines=[`⚽ ${m.title}`,`${new Date(`${m.match_date}T12:00:00`).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'})} | ${m.start_time.slice(0,5)}`,m.location||'', '',...q.data.teams.flatMap((t:any)=>[`*${colorNames[t.color_key]||t.name}*`,...t.team_players.map((p:any)=>`• ${fullName(p.profiles)}`),'']),`⚖️ איזון: ${calcBalance(q.data.teams)}%`,`נשלח מ־TEAMUP`];const text=lines.join('\n');try{if(navigator.share)await navigator.share({title:'קבוצות TEAMUP',text});else{await navigator.clipboard.writeText(text);toast.success('הקבוצות הועתקו. אפשר להדביק בוואטסאפ')}}catch{}}
- if(q.isLoading)return <MatchSkeleton/>;if(q.isError||!q.data)return <Card className="empty-state"><h2>לא הצלחנו לפתוח את המשחק</h2><p>{q.error instanceof Error?q.error.message:'פרטי המשחק לא נטענו. אפשר לנסות שוב.'}</p><Button onClick={()=>q.refetch()}>ניסיון נוסף</Button></Card>;
- const {match,regs,teams}=q.data,confirmed=regs.filter(r=>r.registration_status==='confirmed'),wait=regs.filter(r=>r.registration_status==='waitlisted');const balance=calcBalance(teams),attendedCount=confirmed.filter(r=>r.attended).length,canManageAttendance=match.created_by===user?.id||canManage(g,'open_ratings');
- const flow=[
-  ['הרשמה',confirmed.length>0],
-  ['סגירת הרשמה',['registration_closed','teams_published','completed'].includes(match.status)],
-  ['חלוקת קבוצות',teams.length>0],
-  ['סימון נוכחות',attendedCount>0],
-  ['דיווח שערים',Date.now()>=new Date(`${match.match_date}T${match.start_time}`).getTime()&&attendedCount>0],
-  ['סיכום',match.status==='completed']
- ] as const;
- const shareSummary=async()=>{const date=new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});const lines=[`⚽ *${match.title}*`,`${date} | ${match.start_time.slice(0,5)}`,match.location||'',`👥 ${confirmed.length} שחקנים רשומים`,wait.length?`⏳ ${wait.length} ברשימת המתנה`:'',teams.length?`⚖️ איזון קבוצות: ${balance}%`:'',teams.length?'': 'הקבוצות טרם פורסמו','', 'נשלח מ־TEAMUP'];const text=lines.filter(Boolean).join('\n');try{if(navigator.share)await navigator.share({title:'סיכום משחק TEAMUP',text});else{await navigator.clipboard.writeText(text);toast.success('סיכום המשחק הועתק לוואטסאפ')}}catch{}}
+export default function MatchPage() {
+  const {id} = useParams();
+  const {user} = useAuth();
+  const {data: g} = useGroup();
+  const canEditTeams = canManage(g, 'edit_teams');
+  const canGenerateTeams = canManage(g, 'generate_teams');
+  const qc = useQueryClient();
+  const [dragged, setDragged] = useState<string | null>(null);
+  const [swapFirst, setSwapFirst] = useState<string | null>(null);
+  const key = ['match', id] as const;
+  const q = useQuery({
+    queryKey: key,
+    enabled: !!id,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const {data, error} = await supabase.rpc('get_member_match_details', {
+        p_match_id: id,
+      });
+      if (!error) {
+        const details = data as {
+          match?: Match;
+          regs?: Registration[];
+          teams?: any[];
+        } | null;
+        if (details?.match) {
+          const teams = details.teams || [];
+          const latest = teams.length ? Math.max(...teams.map((x: any) => x.generation_version)) : 0;
+          return {
+            match: details.match,
+            regs: details.regs || [],
+            teams: teams.filter((x: any) => x.generation_version === latest),
+          };
+        }
+      }
+      console.error('[TEAMUP match] Falling back to direct match reads', {
+        matchId: id,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        response: data,
+      });
+      const {data: match, error: matchError} = await supabase.from('matches').select('*').eq('id', id).maybeSingle();
+      if (matchError || !match) {
+        console.error('[TEAMUP match] Match row is not visible', {
+          matchId: id,
+          error: matchError,
+        });
+        throw matchError || new Error('המשחק לא נמצא או שאין לך גישה אליו');
+      }
+      const [{data: regs, error: regsError}, {data: teams, error: teamsError}] = await Promise.all([supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').eq('match_id', id).order('registered_at'), supabase.from('teams').select('*,team_players(*,profiles(*))').eq('match_id', id).eq('is_published', true).order('generation_version', {ascending: false}).order('team_number')]);
+      if (regsError)
+        console.warn('[TEAMUP match] Registrations were not available', {
+          matchId: id,
+          error: regsError,
+        });
+      if (teamsError)
+        console.warn('[TEAMUP match] Teams were not available', {
+          matchId: id,
+          error: teamsError,
+        });
+      const rows = teams || [];
+      const latest = rows.length ? Math.max(...rows.map((x: any) => x.generation_version)) : 0;
+      return {
+        match: match as Match,
+        regs: (regs || []) as Registration[],
+        teams: rows.filter((x: any) => x.generation_version === latest),
+      };
+    },
+  });
+  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
+  const mine = useMemo(() => q.data?.regs.find((x) => x.user_id === user?.id), [q.data, user]);
+  const act = useMutation({
+    mutationFn: async (response: 'attending' | 'unavailable') => {
+      const {error} = await supabase.rpc('respond_to_match', {
+        p_match_id: id,
+        p_response: response,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('הבחירה נשמרה');
+      qc.invalidateQueries({queryKey: key});
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const refresh = () => qc.invalidateQueries({queryKey: key});
+  const move = async (target: string) => {
+    if (!dragged) return;
+    const before = calcBalance(q.data?.teams || []);
+    const {error} = await supabase.rpc('move_team_player', {
+      p_match_id: id,
+      p_user_id: dragged,
+      p_target_team_id: target,
+    });
+    if (error) toast.error(error.message);
+    else {
+      await refresh();
+      toast.success(`השחקן הועבר. מדד האיזון לפני השינוי: ${before}%`);
+    }
+    setDragged(null);
+  };
+  const toggleLock = async (userId: string) => {
+    const {data, error} = await supabase.rpc('toggle_team_player_lock', {
+      p_match_id: id,
+      p_user_id: userId,
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success(data ? 'השחקן ננעל' : 'נעילת השחקן בוטלה');
+      refresh();
+    }
+  };
+  const selectSwap = async (userId: string) => {
+    if (!swapFirst) {
+      setSwapFirst(userId);
+      toast('בחר עכשיו שחקן מקבוצה אחרת');
+      return;
+    }
+    if (swapFirst === userId) {
+      setSwapFirst(null);
+      return;
+    }
+    const {error} = await supabase.rpc('swap_team_players', {
+      p_match_id: id,
+      p_first_user: swapFirst,
+      p_second_user: userId,
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success('השחקנים הוחלפו');
+      refresh();
+    }
+    setSwapFirst(null);
+  };
+  const undo = async () => {
+    const {error} = await supabase.rpc('undo_last_team_edit', {
+      p_match_id: id,
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success('השינוי האחרון בוטל');
+      refresh();
+    }
+  };
+  const rerandom = async () => {
+    if (!confirm('ליצור חלוקה חדשה? החלוקה הנוכחית תישאר בהיסטוריה.')) return;
+    const {error} = await supabase.rpc('regenerate_balanced_teams', {
+      p_match_id: id,
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success('נוצרה חלוקה חדשה');
+      refresh();
+    }
+  };
+  const attendance = useMutation({
+    mutationFn: async ({userId, attended}: {userId: string | null; attended: boolean}) => {
+      const {error} = await supabase.rpc('set_match_attendance', {
+        p_match_id: id,
+        p_user_id: userId,
+        p_attended: attended,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('הנוכחות עודכנה');
+      refresh();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const ratingsWindow = useMutation({
+    mutationFn: async (open: boolean) => {
+      const {error} = await supabase.rpc(open ? 'open_match_ratings' : 'close_match_ratings', {p_match_id: id});
+      if (error) throw error;
+      return open;
+    },
+    onSuccess: (open) => {
+      toast.success(open ? 'הדירוג נפתח לשבעה ימים' : 'הדירוג נסגר');
+      refresh();
+      qc.invalidateQueries({queryKey: ['admin-matches']});
+      qc.invalidateQueries({queryKey: ['open-ratings']});
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const shareTeams = async () => {
+    if (!q.data?.teams.length) return;
+    const m = q.data.match;
+    const lines = [`⚽ ${m.title}`, `${new Date(`${m.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})} | ${m.start_time.slice(0, 5)}`, m.location || '', '', ...q.data.teams.flatMap((t: any) => [`*${colorNames[t.color_key] || t.name}*`, ...t.team_players.map((p: any) => `• ${fullName(p.profiles)}`), '']), `⚖️ איזון: ${calcBalance(q.data.teams)}%`, `נשלח מ־TEAMUP`];
+    const text = lines.join('\n');
+    try {
+      if (navigator.share) await navigator.share({title: 'קבוצות TEAMUP', text});
+      else {
+        await navigator.clipboard.writeText(text);
+        toast.success('הקבוצות הועתקו. אפשר להדביק בוואטסאפ');
+      }
+    } catch {}
+  };
+  if (q.isLoading) return <MatchSkeleton />;
+  if (q.isError || !q.data)
+    return (
+      <Card className="empty-state">
+        <h2>לא הצלחנו לפתוח את המשחק</h2>
+        <p>{q.error instanceof Error ? q.error.message : 'פרטי המשחק לא נטענו. אפשר לנסות שוב.'}</p>
+        <Button onClick={() => q.refetch()}>ניסיון נוסף</Button>
+      </Card>
+    );
+  const {match, regs, teams} = q.data,
+    confirmed = regs.filter((r) => r.registration_status === 'confirmed'),
+    wait = regs.filter((r) => r.registration_status === 'waitlisted');
+  const balance = calcBalance(teams),
+    attendedCount = confirmed.filter((r) => r.attended).length,
+    canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
+  const flow = [
+    ['הרשמה', confirmed.length > 0],
+    ['סגירת הרשמה', ['registration_closed', 'teams_published', 'completed'].includes(match.status)],
+    ['חלוקת קבוצות', teams.length > 0],
+    ['סימון נוכחות', attendedCount > 0],
+    ['דיווח שערים', Date.now() >= new Date(`${match.match_date}T${match.start_time}`).getTime() && attendedCount > 0],
+    ['סיכום', match.status === 'completed'],
+  ] as const;
+  const shareSummary = async () => {
+    const date = new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'});
+    const lines = [`⚽ *${match.title}*`, `${date} | ${match.start_time.slice(0, 5)}`, match.location || '', `👥 ${confirmed.length} שחקנים רשומים`, wait.length ? `⏳ ${wait.length} ברשימת המתנה` : '', teams.length ? `⚖️ איזון קבוצות: ${balance}%` : '', teams.length ? '' : 'הקבוצות טרם פורסמו', '', 'נשלח מ־TEAMUP'];
+    const text = lines.filter(Boolean).join('\n');
+    try {
+      if (navigator.share) await navigator.share({title: 'סיכום משחק TEAMUP', text});
+      else {
+        await navigator.clipboard.writeText(text);
+        toast.success('סיכום המשחק הועתק לוואטסאפ');
+      }
+    } catch {}
+  };
 
- return <div className="space-y-5"><section className="match-command-center"><div className="match-flow">{flow.map(([label,done],i)=><div className={`flow-step ${done?'done':''}`} key={label}><span>{done?'✓':i+1}</span><b>{label}</b></div>)}</div><div className="quick-actions-row"><Button variant="secondary" onClick={shareSummary}><MessageCircle size={17}/>סיכום לוואטסאפ</Button>{teams.length>0&&<Button onClick={shareTeams}><Users size={17}/>שיתוף קבוצות</Button>}</div></section><Card className="match-hero"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge>{statusLabel(match.status)}</Badge><h1>{match.title}</h1><p>{new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'})} · {match.start_time.slice(0,5)} · {match.location||'מיקום יעודכן'}</p></div><div className="capacity-badge"><strong>{confirmed.length}</strong><span>מתוך {match.capacity}</span></div></div>{match.status==='registration_open'&&<div className="match-actions"><Button title="הרשמה למשחק. אם הרשימה מלאה תיכנס לרשימת המתנה" onClick={()=>act.mutate('attending')} disabled={act.isPending}><Check size={18}/>אני מגיע</Button><Button title={mine?.response==='attending'?'ביטול ההרשמה שלי למשחק':'סימון שאינני יכול להגיע השבוע'} variant="secondary" onClick={()=>act.mutate('unavailable')} disabled={act.isPending}><UserX size={18}/>{mine?.response==='attending'?'ביטול הרשמה':'לא יכול השבוע'}</Button></div>}{mine&&<p className="my-status">הסטטוס שלך: {mine.registration_status==='confirmed'?'רשום למשחק':mine.registration_status==='waitlisted'?'ברשימת המתנה':mine.response==='unavailable'?'לא מגיע':'ללא הרשמה'}</p>}</Card>
- {teams.length>0&&<section className="teams-section"><div className="teams-heading"><div><p>החלוקה פורסמה</p><h2>הקבוצות למשחק</h2></div><Badge><ShieldCheck size={15}/>איזון {balance}%</Badge></div>{canManage(g)&&<div className="team-editor-toolbar"><Button variant="secondary" onClick={undo} title="ביטול ההעברה או ההחלפה האחרונה"><Undo2 size={17}/>Undo</Button><Button variant="secondary" onClick={rerandom} title="יצירת חלוקה חדשה לפי הדירוגים והעמדות"><RefreshCcw size={17}/>חלוקה מחדש</Button><Button variant="secondary" onClick={()=>setSwapFirst(null)} title="בחר שחקן אחד ואז שחקן מקבוצה אחרת כדי להחליף ביניהם"><Repeat2 size={17}/>{swapFirst?'בחר שחקן שני':'מצב החלפה'}</Button><Button onClick={shareTeams} title="שיתוף רשימת הקבוצות דרך וואטסאפ או תפריט השיתוף"><MessageCircle size={17}/>שיתוף</Button></div>}
- <div className="teams-board">{teams.map((team:any,i:number)=><Card key={team.id} className={`team-card team-${team.color_key||['red','blue','yellow','green'][i]}`} onDragOver={e=>e.preventDefault()} onDrop={()=>move(team.id)}><header><div><span className="team-dot"/><h3>{colorNames[team.color_key]||team.name}</h3></div><strong>{team.team_players.length} שחקנים</strong></header><div className="team-player-list">{team.team_players.map((p:any)=><div key={p.id} className={`team-player ${swapFirst===p.user_id?'swap-selected':''} ${p.is_locked?'player-locked':''}`} draggable={canManage(g)&&!p.is_locked} onDragStart={()=>setDragged(p.user_id)} onClick={()=>canManage(g)&&selectSwap(p.user_id)} title={p.is_locked?'השחקן נעול ואי אפשר להעביר אותו':'לחיצה לבחירת השחקן להחלפה'}><GripVertical size={15}/><div className="player-avatar sm">{p.profiles?.first_name?.[0]||'ש'}</div><div><strong>{fullName(p.profiles)}</strong><span>{positionLabel(p.assigned_position||p.profiles?.preferred_position)}</span></div>{canManage(g)?<button className="lock-player-btn" onClick={e=>{e.stopPropagation();toggleLock(p.user_id)}} title={p.is_locked?'פתיחת נעילת השחקן':'נעילת השחקן במקומו'}>{p.is_locked?<Lock size={15}/>:<LockOpen size={15}/>}</button>:<Star size={14}/>}</div>)}</div></Card>)}</div>{canManage(g)&&<p className="drag-help">גרירה מעבירה שחקן. לחיצה על שני שחקנים מקבוצות שונות מחליפה ביניהם. מנעול מונע שינוי בטעות.</p>}</section>}
- <GoalCenter match={match} registrations={regs}/><div className="grid gap-4 lg:grid-cols-2"><Card><div className="section-title"><h2><Users size={19}/>נוכחות במשחק</h2><Badge>{attendedCount}/{confirmed.length} נכחו</Badge></div><p className="section-help">רק שחקנים שסומנו כנוכחים יוכלו לדרג, להיות מדורגים ולהופיע בדיווחי שערים.</p>{canManageAttendance&&<div className="action-row mt-3">{!match.ratings_open&&confirmed.length>0&&<Button variant="secondary" disabled={attendance.isPending} onClick={()=>confirm('לסמן את כל הרשומים כנוכחים? לאחר מכן אפשר לבטל סימון למי שלא הגיע.')&&attendance.mutate({userId:null,attended:true})}><Check size={17}/>סימון כל הרשומים</Button>}{['teams_published','completed'].includes(match.status)&&(match.ratings_open?<Button variant="secondary" disabled={ratingsWindow.isPending} onClick={()=>confirm('לסגור את חלון הדירוג?')&&ratingsWindow.mutate(false)}><Lock size={16}/>סגירת דירוג</Button>:<Button disabled={ratingsWindow.isPending} onClick={()=>ratingsWindow.mutate(true)}><Star size={16}/>פתיחת דירוג</Button>)}</div>}<div className="players-grid">{confirmed.map((r,i)=><div className="player-row" key={r.id} title={`נרשם במקום ${i+1}`}><b>{i+1}</b><span>{fullName(r.profiles)}</span>{canManageAttendance&&!match.ratings_open?<Button className="ms-auto !px-3 !py-2" variant={r.attended?'secondary':'ghost'} disabled={attendance.isPending} onClick={()=>attendance.mutate({userId:r.user_id,attended:!r.attended})}>{r.attended?<><Check size={15}/>נכח</>:<><UserX size={15}/>לא סומן</>}</Button>:<Badge className="ms-auto">{r.attended?'נכח':'לא נכח'}</Badge>}</div>)}</div></Card><Card><div className="section-title"><h2><Clock3 size={19}/>רשימת המתנה</h2><Badge>{wait.length}</Badge></div>{wait.length?wait.map((r,i)=><div key={r.id} className="wait-row"><span>{fullName(r.profiles)}</span><Badge>#{i+1}</Badge></div>):<p className="empty-inline">אין שחקנים בהמתנה.</p>}</Card></div></div>
+  return (
+    <div className="space-y-5">
+      <section className="match-command-center">
+        <div className="match-flow">
+          {flow.map(([label, done], i) => (
+            <div className={`flow-step ${done ? 'done' : ''}`} key={label}>
+              <span>{done ? '✓' : i + 1}</span>
+              <b>{label}</b>
+            </div>
+          ))}
+        </div>
+        <div className="quick-actions-row">
+          <Button variant="secondary" onClick={shareSummary}>
+            <MessageCircle size={17} />
+            סיכום לוואטסאפ
+          </Button>
+          {teams.length > 0 && (
+            <Button onClick={shareTeams}>
+              <Users size={17} />
+              שיתוף קבוצות
+            </Button>
+          )}
+        </div>
+      </section>
+      <Card className="match-hero">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Badge>{statusLabel(match.status)}</Badge>
+            <h1>{match.title}</h1>
+            <p>
+              {new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})} · {match.start_time.slice(0, 5)} · {match.location || 'מיקום יעודכן'}
+            </p>
+          </div>
+          <div className="capacity-badge">
+            <strong>{confirmed.length}</strong>
+            <span>מתוך {match.capacity}</span>
+          </div>
+        </div>
+        {match.status === 'registration_open' && (
+          <div className="match-actions">
+            <Button title="הרשמה למשחק. אם הרשימה מלאה תיכנס לרשימת המתנה" onClick={() => act.mutate('attending')} disabled={act.isPending}>
+              <Check size={18} />
+              אני מגיע
+            </Button>
+            <Button title={mine?.response === 'attending' ? 'ביטול ההרשמה שלי למשחק' : 'סימון שאינני יכול להגיע השבוע'} variant="secondary" onClick={() => act.mutate('unavailable')} disabled={act.isPending}>
+              <UserX size={18} />
+              {mine?.response === 'attending' ? 'ביטול הרשמה' : 'לא יכול השבוע'}
+            </Button>
+          </div>
+        )}
+        {mine && <p className="my-status">הסטטוס שלך: {mine.registration_status === 'confirmed' ? 'רשום למשחק' : mine.registration_status === 'waitlisted' ? 'ברשימת המתנה' : mine.response === 'unavailable' ? 'לא מגיע' : 'ללא הרשמה'}</p>}
+      </Card>
+      {teams.length > 0 && (
+        <section className="teams-section">
+          <div className="teams-heading">
+            <div>
+              <p>החלוקה פורסמה</p>
+              <h2>הקבוצות למשחק</h2>
+            </div>
+            <Badge>
+              <ShieldCheck size={15} />
+              איזון {balance}%
+            </Badge>
+          </div>
+          {(canEditTeams || canGenerateTeams) && (
+            <div className="team-editor-toolbar">
+              {canEditTeams && (
+                <>
+                  <Button variant="secondary" onClick={undo} title="ביטול ההעברה או ההחלפה האחרונה">
+                    <Undo2 size={17} />
+                    Undo
+                  </Button>
+                  <Button variant="secondary" onClick={() => setSwapFirst(null)} title="בחר שחקן אחד ואז שחקן מקבוצה אחרת כדי להחליף ביניהם">
+                    <Repeat2 size={17} />
+                    {swapFirst ? 'בחר שחקן שני' : 'מצב החלפה'}
+                  </Button>
+                </>
+              )}
+              {canGenerateTeams && (
+                <Button variant="secondary" onClick={rerandom} title="יצירת חלוקה חדשה לפי הדירוגים והעמדות">
+                  <RefreshCcw size={17} />
+                  חלוקה מחדש
+                </Button>
+              )}
+              <Button onClick={shareTeams} title="שיתוף רשימת הקבוצות דרך וואטסאפ או תפריט השיתוף">
+                <MessageCircle size={17} />
+                שיתוף
+              </Button>
+            </div>
+          )}
+          <div className="teams-board">
+            {teams.map((team: any, i: number) => (
+              <Card key={team.id} className={`team-card team-${team.color_key || ['red', 'blue', 'yellow', 'green'][i]}`} onDragOver={(e) => canEditTeams && e.preventDefault()} onDrop={() => canEditTeams && move(team.id)}>
+                <header>
+                  <div>
+                    <span className="team-dot" />
+                    <h3>{colorNames[team.color_key] || team.name}</h3>
+                  </div>
+                  <strong>{team.team_players.length} שחקנים</strong>
+                </header>
+                <div className="team-player-list">
+                  {team.team_players.map((p: any) => (
+                    <div key={p.id} className={`team-player ${swapFirst === p.user_id ? 'swap-selected' : ''} ${p.is_locked ? 'player-locked' : ''}`} draggable={canEditTeams && !p.is_locked} onDragStart={() => setDragged(p.user_id)} onClick={() => canEditTeams && selectSwap(p.user_id)} title={p.is_locked ? 'השחקן נעול ואי אפשר להעביר אותו' : 'לחיצה לבחירת השחקן להחלפה'}>
+                      <GripVertical size={15} />
+                      <div className="player-avatar sm">{p.profiles?.first_name?.[0] || 'ש'}</div>
+                      <div>
+                        <strong>{fullName(p.profiles)}</strong>
+                        <span>{positionLabel(p.assigned_position || p.profiles?.preferred_position)}</span>
+                      </div>
+                      {canEditTeams ? (
+                        <button
+                          className="lock-player-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLock(p.user_id);
+                          }}
+                          title={p.is_locked ? 'פתיחת נעילת השחקן' : 'נעילת השחקן במקומו'}
+                        >
+                          {p.is_locked ? <Lock size={15} /> : <LockOpen size={15} />}
+                        </button>
+                      ) : (
+                        <Star size={14} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+          {canEditTeams && <p className="drag-help">גרירה מעבירה שחקן. לחיצה על שני שחקנים מקבוצות שונות מחליפה ביניהם. מנעול מונע שינוי בטעות.</p>}
+        </section>
+      )}
+      <GoalCenter match={match} registrations={regs} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <div className="section-title">
+            <h2>
+              <Users size={19} />
+              נוכחות במשחק
+            </h2>
+            <Badge>
+              {attendedCount}/{confirmed.length} נכחו
+            </Badge>
+          </div>
+          <p className="section-help">רק שחקנים שסומנו כנוכחים יוכלו לדרג, להיות מדורגים ולהופיע בדיווחי שערים.</p>
+          {canManageAttendance && (
+            <div className="action-row mt-3">
+              {!match.ratings_open && confirmed.length > 0 && (
+                <Button variant="secondary" disabled={attendance.isPending} onClick={() => confirm('לסמן את כל הרשומים כנוכחים? לאחר מכן אפשר לבטל סימון למי שלא הגיע.') && attendance.mutate({userId: null, attended: true})}>
+                  <Check size={17} />
+                  סימון כל הרשומים
+                </Button>
+              )}
+              {['teams_published', 'completed'].includes(match.status) &&
+                (match.ratings_open ? (
+                  <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}>
+                    <Lock size={16} />
+                    סגירת דירוג
+                  </Button>
+                ) : (
+                  <Button disabled={ratingsWindow.isPending} onClick={() => ratingsWindow.mutate(true)}>
+                    <Star size={16} />
+                    פתיחת דירוג
+                  </Button>
+                ))}
+            </div>
+          )}
+          <div className="players-grid">
+            {confirmed.map((r, i) => (
+              <div className="player-row" key={r.id} title={`נרשם במקום ${i + 1}`}>
+                <b>{i + 1}</b>
+                <span>{fullName(r.profiles)}</span>
+                {canManageAttendance && !match.ratings_open ? (
+                  <Button
+                    className="ms-auto !px-3 !py-2"
+                    variant={r.attended ? 'secondary' : 'ghost'}
+                    disabled={attendance.isPending}
+                    onClick={() =>
+                      attendance.mutate({
+                        userId: r.user_id,
+                        attended: !r.attended,
+                      })
+                    }
+                  >
+                    {r.attended ? (
+                      <>
+                        <Check size={15} />
+                        נכח
+                      </>
+                    ) : (
+                      <>
+                        <UserX size={15} />
+                        לא סומן
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Badge className="ms-auto">{r.attended ? 'נכח' : 'לא נכח'}</Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <div className="section-title">
+            <h2>
+              <Clock3 size={19} />
+              רשימת המתנה
+            </h2>
+            <Badge>{wait.length}</Badge>
+          </div>
+          {wait.length ? (
+            wait.map((r, i) => (
+              <div key={r.id} className="wait-row">
+                <span>{fullName(r.profiles)}</span>
+                <Badge>#{i + 1}</Badge>
+              </div>
+            ))
+          ) : (
+            <p className="empty-inline">אין שחקנים בהמתנה.</p>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
 }
