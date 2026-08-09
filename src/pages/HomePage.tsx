@@ -21,7 +21,7 @@ export default function HomePage(){
    supabase.from('group_members').select('user_id,profiles(*)').eq('group_id',g!.group.id).eq('status','active')
   ]);
   const matchRows=(matches||[]) as Match[];const regsByMatch:Record<string,Registration[]>={};
-  if(matchRows.length){const {data:regs}=await supabase.from('match_registrations').select('*,profiles(*)').in('match_id',matchRows.map(m=>m.id)).order('registered_at');for(const r of (regs||[]) as Registration[])(regsByMatch[r.match_id]??=[]).push(r)}
+  if(matchRows.length){const {data:regs,error}=await supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').in('match_id',matchRows.map(m=>m.id)).order('registered_at');if(error)throw error;for(const r of (regs||[]) as Registration[])(regsByMatch[r.match_id]??=[]).push(r)}
   const statMap=new Map((stats||[]).map((x:any)=>[x.user_id,x]));const rows=(members||[]).map((m:any)=>{const st:any=statMap.get(m.user_id);return{...m,mvp:Number(st?.mvp_count||0),rating:Number(st?.avg_rating??m.profiles.base_rating??3)}}).sort((a:any,b:any)=>b.mvp-a.mvp||b.rating-a.rating);
   return{matches:matchRows,regsByMatch,polls:(polls||[]).filter((p:any)=>!isPollPast(p.week_start)),activity:activity||[],leader:rows[0],myRating:rows.find((x:any)=>x.user_id===user?.id)};
  }});
