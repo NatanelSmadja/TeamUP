@@ -155,11 +155,13 @@ export default function MatchPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const lifecycle = useMutation({
-    mutationFn: async (action: 'close' | 'open' | 'generate' | 'complete') => {
+    mutationFn: async (action: 'close' | 'open' | 'reopenPublished' | 'generate' | 'complete') => {
       const request = action === 'close'
         ? ['set_match_registration', {p_match_id: id, p_open: false}]
         : action === 'open'
           ? ['set_match_registration', {p_match_id: id, p_open: true}]
+          : action === 'reopenPublished'
+            ? ['reopen_published_match_registration', {p_match_id: id}]
           : action === 'generate'
             ? ['generate_balanced_teams', {p_match_id: id}]
             : ['complete_match', {p_match_id: id}];
@@ -168,7 +170,7 @@ export default function MatchPage() {
       return action;
     },
     onSuccess: async (action) => {
-      toast.success({close: 'ההרשמה נסגרה', open: 'ההרשמה נפתחה מחדש', generate: 'הקבוצות נוצרו ופורסמו', complete: 'המשחק הסתיים וננעל'}[action]);
+      toast.success({close: 'ההרשמה נסגרה', open: 'ההרשמה נפתחה מחדש', reopenPublished: 'החלוקה בוטלה וההרשמה נפתחה מחדש', generate: 'הקבוצות נוצרו ופורסמו', complete: 'המשחק הסתיים וננעל'}[action]);
       await refresh();
       qc.invalidateQueries({queryKey: ['admin-matches']});
       qc.invalidateQueries({queryKey: ['v25-home']});
@@ -319,7 +321,7 @@ export default function MatchPage() {
   const showLifecycleActions =
     (match.status === 'registration_open' && canCloseRegistration) ||
     (match.status === 'registration_closed' && (canCloseRegistration || canGenerateTeams)) ||
-    (match.status === 'teams_published' && canCompleteMatch) ||
+    (match.status === 'teams_published' && (canCompleteMatch || canCloseRegistration || canGenerateTeams)) ||
     (match.status === 'completed' && canOpenRatings);
   const flow = [
     ['הרשמה', confirmed.length > 0],
@@ -411,6 +413,7 @@ export default function MatchPage() {
           {match.status === 'registration_open' && canCloseRegistration && <Button variant="secondary" disabled={lifecycle.isPending} onClick={() => confirm('לסגור את ההרשמה? לאחר הסגירה ניתן ליצור את הקבוצות.') && lifecycle.mutate('close')}><Lock size={16}/>סגירת הרשמה</Button>}
           {match.status === 'registration_closed' && canCloseRegistration && <Button variant="secondary" disabled={lifecycle.isPending} onClick={() => lifecycle.mutate('open')}><LockOpen size={16}/>פתיחה מחדש</Button>}
           {match.status === 'registration_closed' && canGenerateTeams && <Button disabled={lifecycle.isPending} onClick={() => lifecycle.mutate('generate')}><Users size={16}/>יצירת קבוצות</Button>}
+          {match.status === 'teams_published' && !matchStarted && (canCloseRegistration || canGenerateTeams) && <Button variant="secondary" disabled={lifecycle.isPending} onClick={() => confirm('לפתוח מחדש את ההרשמה ולבטל את חלוקת הקבוצות הנוכחית? כל השחקנים שכבר נרשמו יישארו ברשימה.') && lifecycle.mutate('reopenPublished')}><LockOpen size={16}/>ביטול חלוקה ופתיחה מחדש</Button>}
           {match.status === 'teams_published' && canCompleteMatch && <Button disabled={!matchEnded || lifecycle.isPending} title={matchEnded ? 'סיום המשחק ונעילת הנוכחות והקבוצות' : `ניתן לסיים לאחר ${matchEndAt(match).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'})}`} onClick={() => confirm('לסיים את המשחק? חלוקת הקבוצות והנוכחות יינעלו, ויש לטפל קודם בכל דיווחי השערים.') && lifecycle.mutate('complete')}><CheckCircle2 size={16}/>{matchEnded ? 'סיום משחק' : 'סיום לאחר שעת המשחק'}</Button>}
           {match.status === 'completed' && !match.ratings_open && canOpenRatings && <Button disabled={ratingsWindow.isPending} onClick={() => ratingsWindow.mutate(true)}><Star size={16}/>פתיחת דירוג</Button>}
           {match.ratings_open && canOpenRatings && <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}><Lock size={16}/>סגירת דירוג</Button>}
