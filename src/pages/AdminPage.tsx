@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {BellRing, CalendarCheck, Copy, Edit3, Lock, Plus, Shuffle, Trash2, Unlock, Users, UserMinus, UserPlus} from 'lucide-react';
+import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle, Trash2, Unlock, Users, UserMinus, UserPlus} from 'lucide-react';
+import {Link} from 'react-router-dom';
 import {toast} from 'sonner';
 import {Badge, Button, Card, FieldHelp, Input, Tooltip} from '../components/ui';
 import {useGroup, canManage} from '../hooks/useGroup';
@@ -344,6 +345,7 @@ export default function AdminPage() {
                     </p>
                   </div>
                   <div className="action-row">
+                    <Link to={`/matches/${m.id}`}><Button variant="ghost"><ExternalLink size={16}/>למסך המשחק</Button></Link>
                     {m.status === 'registration_open' && (canManageRegistrations || canCreateMatch) && (
                       <Tooltip label="שליחת התראה למי שעדיין לא רשום">
                         <Button variant="secondary" onClick={() => rpc('notify_missing_players', {p_match_id: m.id}, 'נשלחה קריאה לשחקנים')}>
@@ -372,7 +374,7 @@ export default function AdminPage() {
                         ערבוב
                       </Button>
                     )}
-                    {['teams_published', 'registration_closed'].includes(m.status) && !m.ratings_open && canOpenRatings && (
+                    {m.status === 'completed' && !m.ratings_open && canOpenRatings && (
                       <Button variant="secondary" onClick={() => rpc('open_match_ratings', {p_match_id: m.id}, 'הדירוג נפתח')}>
                         פתיחת דירוג
                       </Button>
