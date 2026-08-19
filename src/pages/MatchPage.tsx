@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {useParams} from 'react-router-dom';
-import {Check, Clock3, GripVertical, Lock, LockOpen, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users} from 'lucide-react';
+import {Link, useParams} from 'react-router-dom';
+import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, GripVertical, Lock, LockOpen, MapPin, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users} from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge, Button, Card, Select} from '../components/ui';
 import {MatchSkeleton} from '../components/Skeletons';
@@ -271,6 +271,11 @@ export default function MatchPage() {
   const availableMembers = (members.data || []).filter((member: any) => !registeredIds.has(member.user_id));
   const rosterIsEditable = canManageRegistrations && !match.ratings_open && ['registration_open', 'registration_closed'].includes(match.status);
   const isRegistered = mine?.response === 'attending' && ['confirmed', 'waitlisted'].includes(mine.registration_status);
+  const isConfirmed = mine?.registration_status === 'confirmed';
+  const isWaitlisted = mine?.registration_status === 'waitlisted';
+  const capacityPercent = Math.min(100, (confirmed.length / Math.max(match.capacity, 1)) * 100);
+  const spotsLeft = Math.max(0, match.capacity - confirmed.length);
+  const matchStarted = Date.now() >= new Date(`${match.match_date}T${match.start_time}`).getTime();
   const balance = calcBalance(teams),
     attendedCount = confirmed.filter((r) => r.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
@@ -296,8 +301,45 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <section className="match-command-center">
+    <div className="match-page-v2">
+      <header className="match-page-header">
+        <Link to="/matches" className="match-back-link"><ArrowRight size={17}/>כל המשחקים</Link>
+        <div className="match-header-actions">
+          <Button variant="secondary" onClick={shareSummary}><MessageCircle size={17}/>שיתוף פרטי המשחק</Button>
+          {teams.length > 0 && <Button onClick={shareTeams}><Users size={17}/>שיתוף קבוצות</Button>}
+        </div>
+      </header>
+      <Card className="match-hero">
+        <div className="match-hero-main">
+          <div className="match-hero-copy">
+            <Badge><span className="status-dot"/>{statusLabel(match.status)}</Badge>
+            <h1>{match.title}</h1>
+            <div className="match-detail-list">
+              <span><CalendarDays size={18}/>{new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})}</span>
+              <span><Clock3 size={18}/>{match.start_time.slice(0, 5)}{match.end_time ? `–${match.end_time.slice(0, 5)}` : ''}</span>
+              <span><MapPin size={18}/>{match.location || 'המיקום יעודכן בהמשך'}</span>
+            </div>
+            <div className="match-capacity-block">
+              <div><span><Users size={17}/><strong>{confirmed.length}</strong> מתוך {match.capacity} שחקנים</span><small>{spotsLeft ? `${spotsLeft} מקומות פנויים` : wait.length ? `${wait.length} ממתינים` : 'הרשימה מלאה'}</small></div>
+              <div className="match-capacity-meter"><i style={{width: `${capacityPercent}%`}}/></div>
+            </div>
+          </div>
+          <aside className={`match-registration-panel ${isConfirmed ? 'is-confirmed' : isWaitlisted ? 'is-waitlisted' : ''}`}>
+            <span className="registration-state-icon">{isConfirmed ? <CheckCircle2/> : isWaitlisted ? <Clock3/> : <Users/>}</span>
+            <div>
+              <small>ההרשמה שלך</small>
+              <h2>{isConfirmed ? 'המקום שלך שמור' : isWaitlisted ? 'אתה ברשימת ההמתנה' : match.status === 'registration_open' ? 'מצטרפים למשחק?' : 'ההרשמה סגורה'}</h2>
+              <p>{isConfirmed ? 'נתראה במגרש. אם התוכניות השתנו, אפשר לבטל כאן.' : isWaitlisted ? `אתה במקום ${Math.max(1, wait.findIndex((r) => r.user_id === user?.id) + 1)}. נעדכן אותך אם יתפנה מקום.` : match.status === 'registration_open' ? spotsLeft ? `נשארו ${spotsLeft} מקומות ברשימה הראשית.` : 'הרשימה מלאה, ההרשמה הבאה תיכנס להמתנה.' : 'לא ניתן להירשם או לבטל כרגע.'}</p>
+            </div>
+            {match.status === 'registration_open' && (isRegistered ? (
+              <Button title="ביטול ההרשמה שלי למשחק" variant="secondary" onClick={() => confirm('לבטל את ההרשמה למשחק? אם יש רשימת המתנה, המקום יעבור לשחקן הבא.') && act.mutate('unavailable')} disabled={act.isPending}><UserX size={18}/>{act.isPending ? 'מעדכן...' : 'ביטול הרשמה'}</Button>
+            ) : (
+              <Button title="הרשמה למשחק" onClick={() => act.mutate('attending')} disabled={act.isPending}><Check size={18}/>{act.isPending ? 'נרשם...' : spotsLeft ? 'אני מגיע' : 'הצטרפות להמתנה'}</Button>
+            ))}
+          </aside>
+        </div>
+      </Card>
+      <section className="match-command-center" aria-label="התקדמות המשחק">
         <div className="match-flow">
           {flow.map(([label, done], i) => (
             <div className={`flow-step ${done ? 'done' : ''}`} key={label}>
@@ -306,50 +348,7 @@ export default function MatchPage() {
             </div>
           ))}
         </div>
-        <div className="quick-actions-row">
-          <Button variant="secondary" onClick={shareSummary}>
-            <MessageCircle size={17} />
-            סיכום לוואטסאפ
-          </Button>
-          {teams.length > 0 && (
-            <Button onClick={shareTeams}>
-              <Users size={17} />
-              שיתוף קבוצות
-            </Button>
-          )}
-        </div>
       </section>
-      <Card className="match-hero">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Badge>{statusLabel(match.status)}</Badge>
-            <h1>{match.title}</h1>
-            <p>
-              {new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})} · {match.start_time.slice(0, 5)} · {match.location || 'מיקום יעודכן'}
-            </p>
-          </div>
-          <div className="capacity-badge">
-            <strong>{confirmed.length}</strong>
-            <span>מתוך {match.capacity}</span>
-          </div>
-        </div>
-        {match.status === 'registration_open' && (
-          <div className="match-actions">
-            {isRegistered ? (
-              <Button title="ביטול ההרשמה שלי למשחק" variant="secondary" onClick={() => act.mutate('unavailable')} disabled={act.isPending}>
-                <UserX size={18} />
-                ביטול הרשמה
-              </Button>
-            ) : (
-              <Button title="הרשמה למשחק. אם הרשימה מלאה תיכנס לרשימת המתנה" onClick={() => act.mutate('attending')} disabled={act.isPending}>
-                <Check size={18} />
-                אני מגיע
-              </Button>
-            )}
-          </div>
-        )}
-        {mine && <p className="my-status">הסטטוס שלך: {mine.registration_status === 'confirmed' ? 'רשום למשחק' : mine.registration_status === 'waitlisted' ? 'ברשימת המתנה' : mine.registration_status === 'removed' ? 'הוסר על ידי מנהל' : mine.response === 'unavailable' ? 'לא מגיע' : 'ללא הרשמה'}</p>}
-      </Card>
       {canManageRegistrations && (
         <Card className="registration-manager-card">
           <div className="section-title">
@@ -374,6 +373,42 @@ export default function MatchPage() {
           )}
         </Card>
       )}
+      <section className="match-roster-grid">
+        <Card className="match-roster-card">
+          <div className="section-title">
+            <div className="roster-heading"><span className="roster-heading-icon"><Users size={19}/></span><div><h2>{canManageAttendance || matchStarted ? 'משתתפים ונוכחות' : 'רשימת המשתתפים'}</h2><p>{canManageAttendance || matchStarted ? 'סימון הנוכחות קובע מי יוכל להשתתף בדירוג ובדיווחי השערים.' : 'השחקנים שמקומם במשחק אושר.'}</p></div></div>
+            <Badge>{confirmed.length}/{match.capacity}</Badge>
+          </div>
+          {canManageAttendance && (
+            <div className="roster-toolbar">
+              {!match.ratings_open && confirmed.length > 0 && <Button variant="secondary" disabled={attendance.isPending} onClick={() => confirm('לסמן את כל הרשומים כנוכחים? לאחר מכן אפשר לבטל סימון למי שלא הגיע.') && attendance.mutate({userId: null, attended: true})}><Check size={17}/>סימון כולם כנוכחים</Button>}
+              {['teams_published', 'completed'].includes(match.status) && (match.ratings_open ? <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}><Lock size={16}/>סגירת דירוג</Button> : <Button disabled={ratingsWindow.isPending} onClick={() => ratingsWindow.mutate(true)}><Star size={16}/>פתיחת דירוג</Button>)}
+            </div>
+          )}
+          <div className="players-grid">
+            {confirmed.map((r, i) => (
+              <div className="player-row" key={r.id} title={`נרשם במקום ${i + 1}`}>
+                <div className="player-row-main"><b>{i + 1}</b><div className="player-avatar sm">{r.profiles?.first_name?.[0] || 'ש'}</div><span><strong>{fullName(r.profiles)}</strong><small>{positionLabel(r.profiles?.preferred_position)}</small></span></div>
+                {(rosterIsEditable || canManageAttendance || matchStarted) && <div className="roster-row-actions">
+                  {rosterIsEditable && <Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת המשחק`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת המשחק?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}><Trash2 size={15}/>הסרה</Button>}
+                  {canManageAttendance && !match.ratings_open ? <Button className="roster-status-button" variant={r.attended ? 'secondary' : 'ghost'} disabled={attendance.isPending} onClick={() => attendance.mutate({userId: r.user_id, attended: !r.attended})}>{r.attended ? <><Check size={15}/>נכח</> : <><UserX size={15}/>לא סומן</>}</Button> : matchStarted && <Badge className={r.attended ? 'attendance-confirmed' : ''}>{r.attended ? 'נכח' : 'לא סומן'}</Badge>}
+                </div>}
+              </div>
+            ))}
+            {!confirmed.length && <div className="roster-empty"><Users size={25}/><div><strong>הרשימה עדיין ריקה</strong><span>היה הראשון שנרשם למשחק.</span></div></div>}
+          </div>
+        </Card>
+        <Card className="match-waitlist-card">
+          <div className="section-title">
+            <div className="roster-heading"><span className="roster-heading-icon wait"><Clock3 size={19}/></span><div><h2>רשימת המתנה</h2><p>הסדר מתעדכן אוטומטית כשמתפנה מקום.</p></div></div>
+            <Badge>{wait.length}</Badge>
+          </div>
+          <div className="waitlist-rows">
+            {wait.map((r, i) => <div key={r.id} className="wait-row"><div className="wait-player"><b>{i + 1}</b><div className="player-avatar sm">{r.profiles?.first_name?.[0] || 'ש'}</div><span><strong>{fullName(r.profiles)}</strong><small>מקום {i + 1} בהמתנה</small></span></div>{rosterIsEditable && <div className="roster-row-actions"><Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת ההמתנה`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת ההמתנה?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}><Trash2 size={15}/>הסרה</Button></div>}</div>)}
+            {!wait.length && <div className="roster-empty compact"><CheckCircle2 size={23}/><div><strong>אין שחקנים בהמתנה</strong><span>כל מי שנרשם נמצא כרגע ברשימה הראשית.</span></div></div>}
+          </div>
+        </Card>
+      </section>
       {teams.length > 0 && (
         <section className="teams-section">
           <div className="teams-heading">
@@ -455,95 +490,6 @@ export default function MatchPage() {
         </section>
       )}
       <GoalCenter match={match} registrations={regs} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="section-title">
-            <h2>
-              <Users size={19} />
-              נוכחות במשחק
-            </h2>
-            <Badge>
-              {attendedCount}/{confirmed.length} נכחו
-            </Badge>
-          </div>
-          <p className="section-help">רק שחקנים שסומנו כנוכחים יוכלו לדרג, להיות מדורגים ולהופיע בדיווחי שערים.</p>
-          {canManageAttendance && (
-            <div className="action-row mt-3">
-              {!match.ratings_open && confirmed.length > 0 && (
-                <Button variant="secondary" disabled={attendance.isPending} onClick={() => confirm('לסמן את כל הרשומים כנוכחים? לאחר מכן אפשר לבטל סימון למי שלא הגיע.') && attendance.mutate({userId: null, attended: true})}>
-                  <Check size={17} />
-                  סימון כל הרשומים
-                </Button>
-              )}
-              {['teams_published', 'completed'].includes(match.status) &&
-                (match.ratings_open ? (
-                  <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}>
-                    <Lock size={16} />
-                    סגירת דירוג
-                  </Button>
-                ) : (
-                  <Button disabled={ratingsWindow.isPending} onClick={() => ratingsWindow.mutate(true)}>
-                    <Star size={16} />
-                    פתיחת דירוג
-                  </Button>
-                ))}
-            </div>
-          )}
-          <div className="players-grid">
-            {confirmed.map((r, i) => (
-              <div className="player-row" key={r.id} title={`נרשם במקום ${i + 1}`}>
-                <div className="player-row-main"><b>{i + 1}</b><span>{fullName(r.profiles)}</span></div>
-                <div className="roster-row-actions">
-                  {rosterIsEditable && (
-                    <Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת המשחק`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת המשחק?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}>
-                      <Trash2 size={15} />הסרה
-                    </Button>
-                  )}
-                  {canManageAttendance && !match.ratings_open ? (
-                    <Button
-                      className="roster-status-button"
-                      variant={r.attended ? 'secondary' : 'ghost'}
-                      disabled={attendance.isPending}
-                      onClick={() =>
-                        attendance.mutate({
-                          userId: r.user_id,
-                          attended: !r.attended,
-                        })
-                      }
-                    >
-                      {r.attended ? <><Check size={15} />נכח</> : <><UserX size={15} />לא סומן</>}
-                    </Button>
-                  ) : (
-                    <Badge>{r.attended ? 'נכח' : 'לא נכח'}</Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <div className="section-title">
-            <h2>
-              <Clock3 size={19} />
-              רשימת המתנה
-            </h2>
-            <Badge>{wait.length}</Badge>
-          </div>
-          {wait.length ? (
-            wait.map((r, i) => (
-              <div key={r.id} className="wait-row">
-                <span>{fullName(r.profiles)}</span>
-                <div className="roster-row-actions">
-                  <Badge>#{i + 1}</Badge>
-                  {rosterIsEditable && <Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת ההמתנה`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת ההמתנה?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}><Trash2 size={15} />הסרה</Button>}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="empty-inline">אין שחקנים בהמתנה.</p>
-          )}
-        </Card>
-      </div>
     </div>
   );
 }

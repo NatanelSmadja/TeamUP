@@ -4272,6 +4272,554 @@ body {
     border: 0
 }
 
+/* Match registration workspace */
+.match-page-v2 {
+    display: grid;
+    gap: 16px
+}
+
+.match-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px
+}
+
+.match-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #aebed1;
+    font-size: 13px;
+    font-weight: 750
+}
+
+.match-back-link:hover {
+    color: #fff
+}
+
+.match-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px
+}
+
+.match-header-actions .tap {
+    padding: 9px 13px;
+    font-size: 13px
+}
+
+.match-page-v2 .match-hero {
+    overflow: hidden;
+    padding: 0;
+    border-color: rgba(97, 139, 186, .28);
+    border-radius: 22px;
+    background: #0c1a2d;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, .22)
+}
+
+.match-hero-main {
+    display: grid;
+    grid-template-columns:minmax(0, 1.45fr) minmax(300px, .7fr)
+}
+
+.match-hero-copy {
+    min-width: 0;
+    padding: 26px 28px
+}
+
+.match-hero-copy > .badge {
+    background: #142c49
+}
+
+.match-page-v2 .match-hero h1 {
+    margin: 15px 0 19px;
+    font-size: clamp(31px, 4.6vw, 48px);
+    line-height: 1.08;
+    letter-spacing: -.025em
+}
+
+.match-detail-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px 18px
+}
+
+.match-detail-list > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #b7c6d8;
+    font-size: 14px
+}
+
+.match-detail-list svg {
+    color: #78a8f1
+}
+
+.match-capacity-block {
+    margin-top: 24px;
+    padding-top: 17px;
+    border-top: 1px solid rgba(116, 151, 192, .15)
+}
+
+.match-capacity-block > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px
+}
+
+.match-capacity-block span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #aebdd0;
+    font-size: 13px
+}
+
+.match-capacity-block span strong {
+    color: #fff;
+    font-size: 17px
+}
+
+.match-capacity-block small {
+    color: #6ed7c2;
+    font-weight: 750
+}
+
+.match-capacity-meter {
+    height: 7px;
+    margin-top: 11px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #192c45
+}
+
+.match-capacity-meter i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #28bea3;
+    transition: width .25s ease
+}
+
+.match-registration-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    padding: 26px;
+    border-right: 1px solid rgba(111, 148, 190, .17);
+    background: #101f34
+}
+
+.registration-state-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 15px;
+    background: #192e49;
+    color: #80adf2
+}
+
+.registration-state-icon svg {
+    width: 24px;
+    height: 24px
+}
+
+.match-registration-panel small {
+    color: #8798ad;
+    font-size: 11px;
+    font-weight: 850
+}
+
+.match-registration-panel h2 {
+    margin: 2px 0 5px;
+    font-size: 22px;
+    line-height: 1.2
+}
+
+.match-registration-panel p {
+    color: #98a9bd;
+    font-size: 13px;
+    line-height: 1.55
+}
+
+.match-registration-panel .tap {
+    width: 100%;
+    margin-top: auto
+}
+
+.match-registration-panel.is-confirmed {
+    background: #0e292b
+}
+
+.match-registration-panel.is-confirmed .registration-state-icon {
+    background: rgba(54, 211, 173, .13);
+    color: #59d9bf
+}
+
+.match-registration-panel.is-waitlisted {
+    background: #29251b
+}
+
+.match-registration-panel.is-waitlisted .registration-state-icon {
+    background: rgba(245, 196, 81, .13);
+    color: #efca70
+}
+
+.match-page-v2 .match-command-center {
+    display: block;
+    padding: 12px 16px;
+    border: 1px solid rgba(100, 137, 178, .18);
+    border-radius: 16px;
+    background: #0b1829;
+    box-shadow: none
+}
+
+.match-page-v2 .match-flow {
+    gap: 6px
+}
+
+.match-page-v2 .flow-step {
+    justify-content: center;
+    padding: 5px;
+    font-size: 11px
+}
+
+.match-page-v2 .flow-step span {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    font-size: 10px
+}
+
+.match-page-v2 .registration-manager-card {
+    padding: 17px 18px;
+    border-radius: 18px;
+    border-color: rgba(101, 142, 188, .22);
+    background: #0c1a2c;
+    box-shadow: none
+}
+
+.match-page-v2 .registration-manager-card .section-title h2 {
+    font-size: 17px
+}
+
+.match-page-v2 .registration-manager-actions {
+    margin-top: 13px
+}
+
+.match-roster-grid {
+    display: grid;
+    grid-template-columns:minmax(0, 1.45fr) minmax(290px, .72fr);
+    align-items: start;
+    gap: 14px
+}
+
+.match-roster-card, .match-waitlist-card {
+    padding: 20px;
+    border-radius: 19px;
+    background: #0c192b;
+    box-shadow: none
+}
+
+.roster-heading {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px
+}
+
+.roster-heading-icon {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(54, 211, 173, .1);
+    color: #5dd8bf
+}
+
+.roster-heading-icon.wait {
+    background: rgba(245, 196, 81, .1);
+    color: #e9c36a
+}
+
+.roster-heading h2, .roster-heading p {
+    margin: 0
+}
+
+.roster-heading h2 {
+    font-size: 18px
+}
+
+.roster-heading p {
+    margin-top: 2px;
+    color: #899bb0;
+    font-size: 11px;
+    line-height: 1.4
+}
+
+.roster-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 11px;
+    border-radius: 13px;
+    background: #101f34
+}
+
+.roster-toolbar .tap {
+    padding: 9px 12px;
+    font-size: 12px
+}
+
+.match-roster-card .players-grid {
+    grid-template-columns:1fr;
+    margin-top: 15px
+}
+
+.match-roster-card .player-row,
+.match-waitlist-card .wait-row {
+    min-height: 62px;
+    padding: 10px 11px;
+    border: 1px solid rgba(108, 143, 183, .12);
+    border-radius: 13px;
+    background: #101f34
+}
+
+.match-roster-card .player-row-main > b,
+.wait-player > b {
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    border-radius: 8px;
+    background: #182d48;
+    color: #9db1ca;
+    font-size: 11px
+}
+
+.match-roster-card .player-row-main > span,
+.wait-player > span {
+    display: block;
+    min-width: 0
+}
+
+.match-roster-card .player-row-main strong,
+.match-roster-card .player-row-main small,
+.wait-player strong,
+.wait-player small {
+    display: block
+}
+
+.match-roster-card .player-row-main strong,
+.wait-player strong {
+    overflow-wrap: anywhere;
+    line-height: 1.35
+}
+
+.match-roster-card .player-row-main small,
+.wait-player small {
+    margin-top: 2px;
+    color: #8395aa;
+    font-size: 10px
+}
+
+.attendance-confirmed {
+    background: rgba(54, 211, 173, .12);
+    color: #65ddc5
+}
+
+.waitlist-rows {
+    display: grid;
+    gap: 8px;
+    margin-top: 15px
+}
+
+.wait-player {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px
+}
+
+.wait-player > b {
+    display: grid;
+    place-items: center
+}
+
+.roster-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 105px;
+    padding: 18px;
+    border: 1px dashed rgba(112, 151, 194, .23);
+    border-radius: 14px;
+    color: #8295ab
+}
+
+.roster-empty.compact {
+    min-height: 88px
+}
+
+.roster-empty svg {
+    flex: 0 0 auto;
+    color: #6f9eda
+}
+
+.roster-empty strong, .roster-empty span {
+    display: block
+}
+
+.roster-empty strong {
+    color: #dbe5f1
+}
+
+.roster-empty span {
+    margin-top: 2px;
+    font-size: 11px
+}
+
+@media (max-width: 1000px) {
+    .match-hero-main,
+    .match-roster-grid {
+        grid-template-columns:1fr
+    }
+
+    .match-registration-panel {
+        border-top: 1px solid rgba(111, 148, 190, .17);
+        border-right: 0
+    }
+}
+
+@media (max-width: 720px) {
+    .match-page-v2 {
+        gap: 12px
+    }
+
+    .match-page-header {
+        align-items: stretch;
+        flex-direction: column
+    }
+
+    .match-header-actions {
+        display: grid;
+        grid-template-columns:1fr
+    }
+
+    .match-header-actions:has(> :nth-child(2)) {
+        grid-template-columns:1fr 1fr
+    }
+
+    .match-header-actions .tap {
+        width: 100%;
+        padding-inline: 9px;
+        font-size: 11px
+    }
+
+    .match-hero-copy {
+        padding: 20px 17px
+    }
+
+    .match-page-v2 .match-hero h1 {
+        margin: 13px 0 16px;
+        font-size: 32px
+    }
+
+    .match-detail-list {
+        display: grid;
+        gap: 9px
+    }
+
+    .match-detail-list > span {
+        font-size: 13px
+    }
+
+    .match-capacity-block > div:first-child {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px
+    }
+
+    .match-registration-panel {
+        gap: 13px;
+        padding: 20px 17px
+    }
+
+    .match-registration-panel h2 {
+        font-size: 20px
+    }
+
+    .match-page-v2 .match-command-center {
+        overflow: hidden;
+        padding: 10px 0
+    }
+
+    .match-page-v2 .match-flow {
+        display: grid;
+        overflow-x: auto;
+        grid-auto-columns:122px;
+        grid-auto-flow: column;
+        grid-template-columns:none;
+        justify-content: start;
+        padding: 0 11px 5px;
+        scrollbar-width: none
+    }
+
+    .match-page-v2 .match-flow::-webkit-scrollbar {
+        display: none
+    }
+
+    .match-page-v2 .flow-step {
+        justify-content: flex-start
+    }
+
+    .match-page-v2 .registration-manager-card .section-title {
+        align-items: flex-start
+    }
+
+    .match-roster-card, .match-waitlist-card {
+        padding: 15px
+    }
+
+    .roster-heading-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px
+    }
+
+    .roster-heading h2 {
+        font-size: 16px
+    }
+
+    .match-roster-card .player-row,
+    .match-waitlist-card .wait-row {
+        grid-template-columns:1fr
+    }
+
+    .match-roster-card .roster-row-actions,
+    .match-waitlist-card .roster-row-actions {
+        width: 100%;
+        padding-top: 9px;
+        border-top: 1px solid rgba(255, 255, 255, .07)
+    }
+
+    .match-roster-card .roster-row-actions .tap,
+    .match-waitlist-card .roster-row-actions .tap {
+        flex: 1
+    }
+}
+
 .mobile-sheet-layer {
     position: fixed;
     z-index: 120;
