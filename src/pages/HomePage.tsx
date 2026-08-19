@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {Link} from 'react-router-dom';
-import {Activity, ArrowLeft, BarChart3, CalendarDays, CheckCircle2, Clock, MapPin, Star, Trophy, UserRound, Users} from 'lucide-react';
+import {Activity, ArrowLeft, BarChart3, CalendarDays, CheckCircle2, Clock, MapPin, Star, Trophy, Users} from 'lucide-react';
 import {Badge, Button, Card} from '../components/ui';
 import {useAuth} from '../contexts/AuthContext';
 import {useGroup} from '../hooks/useGroup';
@@ -111,30 +111,30 @@ export default function HomePage() {
   const pollResponses: any[] = activePoll?.weekly_poll_responses || [];
   const answeredActivePoll = votes.some((vote) => vote.user_id === user?.id) || pollResponses.some((response) => response.user_id === user?.id);
   const ratingMatch = data?.openRatings?.[0];
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? 'בוקר טוב' : now.getHours() < 18 ? 'צהריים טובים' : 'ערב טוב';
+  const todayLabel = now.toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'});
+  const waiting = featuredRegs.filter((x) => x.registration_status === 'waitlisted').length;
+  const spotsLeft = featured ? Math.max(0, featured.capacity - confirmed) : 0;
   const dayCounts = [0, 1, 2, 3, 4, 5, 6]
     .map((day) => ({day, count: votes.filter((v) => v.day_of_week === day).length}))
     .sort((a, b) => b.count - a.count);
   return (
     <div className="dashboard-v2">
       <header className="dashboard-hero">
-        <div>
-          <p>ערב טוב, {profile?.first_name || 'שחקן'} 👋</p>
-          <h1>הקבוצה שלך. המשחק שלך.</h1>
-          <span>כל המשחקים והסקרים מוצגים בנפרד, גם באותו שבוע.</span>
+        <div className="dashboard-hero-copy">
+          <p className="home-eyebrow">{g?.group.name || 'TEAMUP CLUB'}</p>
+          <h1>{greeting}, {profile?.first_name || 'שחקן'}</h1>
+          <span>הנה מה שקורה בקבוצה שלך עכשיו.</span>
         </div>
-        <Link to="/profile" className="avatar-button">
-          <UserRound size={22} />
-        </Link>
+        <div className="home-date-chip"><CalendarDays size={18}/><span>{todayLabel}</span></div>
       </header>
       {g && <GroupDashboardCard groupId={g.group.id} />}
       {!isLoading && (ratingMatch || activePoll) && (
-        <Card className="home-action-center">
+        <Card className="home-action-center home-section-card">
           <div className="section-title">
-            <h2>
-              <CheckCircle2 size={20} />
-              מחכה לפעולה שלך
-            </h2>
-            <Badge>{Number(Boolean(ratingMatch)) + Number(Boolean(activePoll))}</Badge>
+            <div className="home-section-heading"><span className="home-section-icon"><CheckCircle2 size={19} /></span><div><small>TO DO</small><h2>מחכה לפעולה שלך</h2></div></div>
+            <Badge>{Number(Boolean(ratingMatch)) + Number(Boolean(activePoll))} משימות</Badge>
           </div>
           <div className="home-action-grid">
             {ratingMatch && (
@@ -173,13 +173,9 @@ export default function HomePage() {
           ) : featured ? (
             <>
               <Card className="featured-match">
-                <div className="featured-glow" />
                 <div className="featured-head">
-                  <Badge>
-                    <span className="status-dot" />
-                    {statusLabel(featured.status)}
-                  </Badge>
-                  <span>
+                  <div><small>המשחק הבא</small><Badge><span className="status-dot" />{statusLabel(featured.status)}</Badge></div>
+                  <span className={`my-match-state ${myReg?.registration_status === 'confirmed' ? 'is-confirmed' : myReg?.registration_status === 'waitlisted' ? 'is-waiting' : ''}`}>
                     {myReg?.registration_status === 'confirmed'
                       ? '✓ אתה בפנים'
                       : myReg?.registration_status === 'waitlisted'
@@ -187,47 +183,30 @@ export default function HomePage() {
                         : 'עדיין לא נרשמת'}
                   </span>
                 </div>
-                <h2>{featured.title}</h2>
-                <div className="featured-meta">
-                  <span>
-                    <CalendarDays />
-                    {new Date(`${featured.match_date}T12:00:00`).toLocaleDateString('he-IL', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })}
-                  </span>
-                  <span>
-                    <Clock />
-                    {featured.start_time.slice(0, 5)}
-                  </span>
-                  <span>
-                    <MapPin />
-                    {featured.location || 'יעודכן בהמשך'}
-                  </span>
+                <div className="featured-body">
+                  <div className="featured-date-block"><strong>{new Date(`${featured.match_date}T12:00:00`).toLocaleDateString('he-IL', {day: '2-digit'})}</strong><span>{new Date(`${featured.match_date}T12:00:00`).toLocaleDateString('he-IL', {month: 'short'})}</span></div>
+                  <div className="featured-copy">
+                    <h2>{featured.title}</h2>
+                    <div className="featured-meta">
+                      <span><CalendarDays />{new Date(`${featured.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long'})}</span>
+                      <span><Clock />{featured.start_time.slice(0, 5)}</span>
+                      <span><MapPin />{featured.location || 'מיקום יעודכן'}</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="registration-meter">
                   <div>
-                    <span>
-                      <Users size={18} />
-                      נרשמו למשחק
-                    </span>
-                    <strong>
-                      {confirmed}/{featured.capacity}
-                    </strong>
+                    <span><Users size={18} /><strong>{confirmed}</strong> מתוך {featured.capacity} נרשמו</span>
+                    <small>{spotsLeft ? `נותרו ${spotsLeft} מקומות` : waiting ? `${waiting} בהמתנה` : 'הרשימה מלאה'}</small>
                   </div>
                   <div className="meter">
                     <i style={{width: `${Math.min(100, (confirmed / featured.capacity) * 100)}%`}} />
                   </div>
                 </div>
-                <Link to={`/matches/${featured.id}`}>
-                  <Button className="w-full">
-                    כניסה למשחק <ArrowLeft size={17} />
-                  </Button>
-                </Link>
+                <div className="featured-footer"><Link to={`/matches/${featured.id}`}><Button>{myReg?.registration_status === 'confirmed' || myReg?.registration_status === 'waitlisted' ? 'לפרטי המשחק' : featured.status === 'registration_open' ? 'להרשמה למשחק' : 'לפרטי המשחק'} <ArrowLeft size={17} /></Button></Link><Link to="/matches">כל המשחקים</Link></div>
               </Card>
               {data!.matches.length > 1 && (
-                <Card>
+                <Card className="home-list-card">
                   <div className="section-title">
                     <h2>
                       <CalendarDays size={19} />
@@ -272,7 +251,7 @@ export default function HomePage() {
               </Link>
             </Card>
           )}
-          <Card className="quick-stats">
+          <Card className="quick-stats" aria-label="הנתונים שלי">
             <Link to="/stats">
               <BarChart3 />
               <div>
@@ -297,7 +276,7 @@ export default function HomePage() {
           </Card>
         </section>
         <aside className="dashboard-side">
-          <Card>
+          <Card className="home-side-card">
             <div className="section-title">
               <h2>
                 <CalendarDays size={19} />
@@ -331,7 +310,7 @@ export default function HomePage() {
               <p className="empty-inline">אין סקר פתוח.</p>
             )}
           </Card>
-          <Card>
+          <Card className="home-side-card">
             <div className="section-title">
               <h2>
                 <Activity size={19} />
