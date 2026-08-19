@@ -497,6 +497,22 @@ button {
     margin-top: 12px !important
 }
 
+.registration-manager-card .section-title > div:first-child {
+    display: grid;
+    gap: 4px
+}
+
+.registration-manager-actions {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 10px;
+    margin-top: 16px
+}
+
+.registration-manager-actions .form-control {
+    width: 100%
+}
+
 .section-title {
     display: flex;
     align-items: center;
@@ -522,7 +538,8 @@ button {
 }
 
 .player-row, .wait-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 11px;
     padding: 11px;
@@ -539,8 +556,64 @@ button {
     background: #1f3d61
 }
 
+.player-row-main {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px
+}
+
+.player-row-main > span, .wait-row > span {
+    min-width: 0;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    white-space: normal
+}
+
 .wait-row {
     justify-content: space-between
+}
+
+.roster-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px
+}
+
+.roster-row-actions .roster-remove-button,
+.roster-row-actions .roster-status-button {
+    min-height: 38px;
+    padding: 8px 11px;
+    font-size: 12px;
+    white-space: nowrap
+}
+
+@media (max-width: 600px) {
+    .registration-manager-actions {
+        grid-template-columns: 1fr
+    }
+
+    .registration-manager-card .section-title {
+        align-items: flex-start;
+        gap: 10px
+    }
+
+    .player-row, .wait-row {
+        grid-template-columns: 1fr
+    }
+
+    .roster-row-actions {
+        width: 100%;
+        padding-top: 9px;
+        border-top: 1px solid rgba(255, 255, 255, .07)
+    }
+
+    .roster-row-actions .roster-remove-button,
+    .roster-row-actions .roster-status-button {
+        flex: 1;
+        justify-content: center
+    }
 }
 
 .mobile-home-head {

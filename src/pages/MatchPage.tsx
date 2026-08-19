@@ -1,16 +1,16 @@
 import {useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useParams} from 'react-router-dom';
-import {Check, Clock3, GripVertical, Lock, LockOpen, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Undo2, UserX, Users} from 'lucide-react';
+import {Check, Clock3, GripVertical, Lock, LockOpen, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users} from 'lucide-react';
 import {toast} from 'sonner';
-import {Badge, Button, Card} from '../components/ui';
+import {Badge, Button, Card, Select} from '../components/ui';
 import {MatchSkeleton} from '../components/Skeletons';
 import {useAuth} from '../contexts/AuthContext';
 import {fullName, statusLabel, positionLabel} from '../lib/utils';
 import {supabase} from '../lib/supabase';
 import type {Match, Registration} from '../types';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
-import {useGroup, canManage} from '../hooks/useGroup';
+import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
 
 const colorNames: any = {
@@ -29,13 +29,14 @@ const calcBalance = (teams: any[]) => {
 
 export default function MatchPage() {
   const {id} = useParams();
-  const {user} = useAuth();
+  const {user, profile} = useAuth();
   const {data: g} = useGroup();
   const canEditTeams = canManage(g, 'edit_teams');
   const canGenerateTeams = canManage(g, 'generate_teams');
   const qc = useQueryClient();
   const [dragged, setDragged] = useState<string | null>(null);
   const [swapFirst, setSwapFirst] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState('');
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -98,6 +99,16 @@ export default function MatchPage() {
     },
   });
   useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
+  const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
+  const members = useQuery({
+    queryKey: ['match-registration-members', q.data?.match.group_id],
+    enabled: !!q.data?.match.group_id && canManageRegistrations,
+    queryFn: async () => {
+      const {data, error} = await supabase.rpc('get_match_registration_candidates', {p_match_id: id});
+      if (error) throw error;
+      return data || [];
+    },
+  });
   const mine = useMemo(() => q.data?.regs.find((x) => x.user_id === user?.id), [q.data, user]);
   const act = useMutation({
     mutationFn: async (response: 'attending' | 'unavailable') => {
@@ -114,6 +125,25 @@ export default function MatchPage() {
     onError: (e) => toast.error(e.message),
   });
   const refresh = () => qc.invalidateQueries({queryKey: key});
+  const manageRegistration = useMutation({
+    mutationFn: async ({userId, attending}: {userId: string; attending: boolean}) => {
+      const {data, error} = await supabase.rpc('manage_match_registration', {
+        p_match_id: id,
+        p_user_id: userId,
+        p_attending: attending,
+      });
+      if (error) throw error;
+      return data as {status?: string; player_name?: string};
+    },
+    onSuccess: async (result, variables) => {
+      setSelectedPlayer('');
+      await refresh();
+      qc.invalidateQueries({queryKey: ['v2-home']});
+      const destination = result?.status === 'waitlisted' ? ' לרשימת ההמתנה' : '';
+      toast.success(variables.attending ? `${result?.player_name || 'השחקן'} נוסף${destination}` : `${result?.player_name || 'השחקן'} הוסר מהרשימה`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const move = async (target: string) => {
     if (!dragged) return;
     const before = calcBalance(q.data?.teams || []);
@@ -237,6 +267,10 @@ export default function MatchPage() {
   const {match, regs, teams} = q.data,
     confirmed = regs.filter((r) => r.registration_status === 'confirmed'),
     wait = regs.filter((r) => r.registration_status === 'waitlisted');
+  const registeredIds = new Set([...confirmed, ...wait].map((r) => r.user_id));
+  const availableMembers = (members.data || []).filter((member: any) => !registeredIds.has(member.user_id));
+  const rosterIsEditable = canManageRegistrations && !match.ratings_open && ['registration_open', 'registration_closed'].includes(match.status);
+  const isRegistered = mine?.response === 'attending' && ['confirmed', 'waitlisted'].includes(mine.registration_status);
   const balance = calcBalance(teams),
     attendedCount = confirmed.filter((r) => r.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
@@ -301,18 +335,45 @@ export default function MatchPage() {
         </div>
         {match.status === 'registration_open' && (
           <div className="match-actions">
-            <Button title="הרשמה למשחק. אם הרשימה מלאה תיכנס לרשימת המתנה" onClick={() => act.mutate('attending')} disabled={act.isPending}>
-              <Check size={18} />
-              אני מגיע
-            </Button>
-            <Button title={mine?.response === 'attending' ? 'ביטול ההרשמה שלי למשחק' : 'סימון שאינני יכול להגיע השבוע'} variant="secondary" onClick={() => act.mutate('unavailable')} disabled={act.isPending}>
-              <UserX size={18} />
-              {mine?.response === 'attending' ? 'ביטול הרשמה' : 'לא יכול השבוע'}
-            </Button>
+            {isRegistered ? (
+              <Button title="ביטול ההרשמה שלי למשחק" variant="secondary" onClick={() => act.mutate('unavailable')} disabled={act.isPending}>
+                <UserX size={18} />
+                ביטול הרשמה
+              </Button>
+            ) : (
+              <Button title="הרשמה למשחק. אם הרשימה מלאה תיכנס לרשימת המתנה" onClick={() => act.mutate('attending')} disabled={act.isPending}>
+                <Check size={18} />
+                אני מגיע
+              </Button>
+            )}
           </div>
         )}
-        {mine && <p className="my-status">הסטטוס שלך: {mine.registration_status === 'confirmed' ? 'רשום למשחק' : mine.registration_status === 'waitlisted' ? 'ברשימת המתנה' : mine.response === 'unavailable' ? 'לא מגיע' : 'ללא הרשמה'}</p>}
+        {mine && <p className="my-status">הסטטוס שלך: {mine.registration_status === 'confirmed' ? 'רשום למשחק' : mine.registration_status === 'waitlisted' ? 'ברשימת המתנה' : mine.registration_status === 'removed' ? 'הוסר על ידי מנהל' : mine.response === 'unavailable' ? 'לא מגיע' : 'ללא הרשמה'}</p>}
       </Card>
+      {canManageRegistrations && (
+        <Card className="registration-manager-card">
+          <div className="section-title">
+            <div>
+              <h2><UserPlus size={19} />ניהול רשימת המשחק</h2>
+              <p className="section-help">הוספה ידנית מכבדת את הקיבולת; כשהרשימה מלאה השחקן ייכנס להמתנה.</p>
+            </div>
+            <Badge>למנהלים בלבד</Badge>
+          </div>
+          {rosterIsEditable ? (
+            <div className="registration-manager-actions">
+              <Select value={selectedPlayer} onChange={(event) => setSelectedPlayer(event.target.value)} disabled={members.isLoading || manageRegistration.isPending} aria-label="בחירת שחקן להוספה">
+                <option value="">{members.isLoading ? 'טוען שחקנים...' : availableMembers.length ? 'בחירת שחקן מהקבוצה' : 'כל שחקני הקבוצה כבר ברשימה'}</option>
+                {availableMembers.map((member: any) => <option key={member.user_id} value={member.user_id}>{fullName(member.profiles)}</option>)}
+              </Select>
+              <Button disabled={!selectedPlayer || manageRegistration.isPending} onClick={() => manageRegistration.mutate({userId: selectedPlayer, attending: true})}>
+                <UserPlus size={17} />הוספה לרשימה
+              </Button>
+            </div>
+          ) : (
+            <p className="empty-inline">לא ניתן לשנות את הרשימה לאחר פרסום הקבוצות או פתיחת הדירוג.</p>
+          )}
+        </Card>
+      )}
       {teams.length > 0 && (
         <section className="teams-section">
           <div className="teams-heading">
@@ -431,35 +492,31 @@ export default function MatchPage() {
           <div className="players-grid">
             {confirmed.map((r, i) => (
               <div className="player-row" key={r.id} title={`נרשם במקום ${i + 1}`}>
-                <b>{i + 1}</b>
-                <span>{fullName(r.profiles)}</span>
-                {canManageAttendance && !match.ratings_open ? (
-                  <Button
-                    className="ms-auto !px-3 !py-2"
-                    variant={r.attended ? 'secondary' : 'ghost'}
-                    disabled={attendance.isPending}
-                    onClick={() =>
-                      attendance.mutate({
-                        userId: r.user_id,
-                        attended: !r.attended,
-                      })
-                    }
-                  >
-                    {r.attended ? (
-                      <>
-                        <Check size={15} />
-                        נכח
-                      </>
-                    ) : (
-                      <>
-                        <UserX size={15} />
-                        לא סומן
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Badge className="ms-auto">{r.attended ? 'נכח' : 'לא נכח'}</Badge>
-                )}
+                <div className="player-row-main"><b>{i + 1}</b><span>{fullName(r.profiles)}</span></div>
+                <div className="roster-row-actions">
+                  {rosterIsEditable && (
+                    <Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת המשחק`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת המשחק?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}>
+                      <Trash2 size={15} />הסרה
+                    </Button>
+                  )}
+                  {canManageAttendance && !match.ratings_open ? (
+                    <Button
+                      className="roster-status-button"
+                      variant={r.attended ? 'secondary' : 'ghost'}
+                      disabled={attendance.isPending}
+                      onClick={() =>
+                        attendance.mutate({
+                          userId: r.user_id,
+                          attended: !r.attended,
+                        })
+                      }
+                    >
+                      {r.attended ? <><Check size={15} />נכח</> : <><UserX size={15} />לא סומן</>}
+                    </Button>
+                  ) : (
+                    <Badge>{r.attended ? 'נכח' : 'לא נכח'}</Badge>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -476,7 +533,10 @@ export default function MatchPage() {
             wait.map((r, i) => (
               <div key={r.id} className="wait-row">
                 <span>{fullName(r.profiles)}</span>
-                <Badge>#{i + 1}</Badge>
+                <div className="roster-row-actions">
+                  <Badge>#{i + 1}</Badge>
+                  {rosterIsEditable && <Button className="roster-remove-button" variant="danger" disabled={manageRegistration.isPending} title={`הסרת ${fullName(r.profiles)} מרשימת ההמתנה`} onClick={() => confirm(`להסיר את ${fullName(r.profiles)} מרשימת ההמתנה?`) && manageRegistration.mutate({userId: r.user_id, attending: false})}><Trash2 size={15} />הסרה</Button>}
+                </div>
               </div>
             ))
           ) : (
