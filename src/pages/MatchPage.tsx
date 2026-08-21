@@ -3,12 +3,12 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Link, useParams} from 'react-router-dom';
 import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, GripVertical, Lock, LockOpen, MapPin, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users} from 'lucide-react';
 import {toast} from 'sonner';
-import {Badge, Button, Card, Select} from '../components/ui';
+import {Badge, Button, Card, Input, Select} from '../components/ui';
 import {MatchSkeleton} from '../components/Skeletons';
 import {useAuth} from '../contexts/AuthContext';
 import {fullName, statusLabel, positionLabel} from '../lib/utils';
 import {supabase} from '../lib/supabase';
-import type {Match, Registration} from '../types';
+import type {Match, MatchGuest, Registration} from '../types';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
@@ -21,11 +21,13 @@ const colorNames: any = {
 };
 const calcBalance = (teams: any[]) => {
   const ratings = teams.map((t) => {
-    const vals = t.team_players.map((p: any) => Number(p.profiles?.base_rating || 3));
+    const vals = t.team_players.map((p: any) => Number(p.guest?.balance_rating ?? p.profiles?.base_rating ?? 3));
     return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
   });
   return ratings.length ? Math.max(0, Math.round(100 - (Math.max(...ratings) - Math.min(...ratings)) * 20)) : 0;
 };
+const participantName = (player: any) => player.guest?.display_name || fullName(player.profiles);
+const participantPosition = (player: any) => player.assigned_position || player.guest?.preferred_position || player.profiles?.preferred_position;
 const matchEndAt = (match: Match) => {
   const start = new Date(`${match.match_date}T${match.start_time}`);
   if (!match.end_time) return new Date(start.getTime() + 2 * 60 * 60 * 1000);
@@ -47,6 +49,9 @@ export default function MatchPage() {
   const [dragged, setDragged] = useState<string | null>(null);
   const [swapFirst, setSwapFirst] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestPosition, setGuestPosition] = useState('utility');
+  const [guestRating, setGuestRating] = useState('3');
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -60,6 +65,7 @@ export default function MatchPage() {
         const details = data as {
           match?: Match;
           regs?: Registration[];
+          guests?: MatchGuest[];
           teams?: any[];
         } | null;
         if (details?.match) {
@@ -68,6 +74,7 @@ export default function MatchPage() {
           return {
             match: details.match,
             regs: details.regs || [],
+            guests: details.guests || [],
             teams: teams.filter((x: any) => x.generation_version === latest),
           };
         }
@@ -88,7 +95,7 @@ export default function MatchPage() {
         });
         throw matchError || new Error('המשחק לא נמצא או שאין לך גישה אליו');
       }
-      const [{data: regs, error: regsError}, {data: teams, error: teamsError}] = await Promise.all([supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').eq('match_id', id).order('registered_at'), supabase.from('teams').select('*,team_players(*,profiles(*))').eq('match_id', id).eq('is_published', true).order('generation_version', {ascending: false}).order('team_number')]);
+      const [{data: regs, error: regsError}, {data: guests}, {data: teams, error: teamsError}] = await Promise.all([supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').eq('match_id', id).order('registered_at'), supabase.from('match_guests').select('*').eq('match_id', id).order('created_at'), supabase.from('teams').select('*,team_players(*,profiles(*),guest:match_guests!team_players_guest_id_fkey(*))').eq('match_id', id).eq('is_published', true).order('generation_version', {ascending: false}).order('team_number')]);
       if (regsError)
         console.warn('[TEAMUP match] Registrations were not available', {
           matchId: id,
@@ -104,11 +111,12 @@ export default function MatchPage() {
       return {
         match: match as Match,
         regs: (regs || []) as Registration[],
+        guests: (guests || []) as MatchGuest[],
         teams: rows.filter((x: any) => x.generation_version === latest),
       };
     },
   });
-  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
+  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
   const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
   const members = useQuery({
     queryKey: ['match-registration-members', q.data?.match.group_id],
@@ -154,6 +162,27 @@ export default function MatchPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+  const manageGuest = useMutation({
+    mutationFn: async ({guestId = null, remove = false}: {guestId?: string | null;remove?: boolean}) => {
+      const {data, error} = await supabase.rpc('manage_match_guest', {
+        p_match_id: id,
+        p_guest_id: guestId,
+        p_display_name: remove ? null : guestName,
+        p_position: guestPosition,
+        p_balance_rating: Number(guestRating),
+        p_remove: remove,
+      });
+      if (error) throw error;
+      return data as {display_name?: string};
+    },
+    onSuccess: async (result, variables) => {
+      if (!variables.remove) setGuestName('');
+      await refresh();
+      qc.invalidateQueries({queryKey: ['v2-home']});
+      toast.success(variables.remove ? `${result?.display_name || 'האורח'} הוסר` : `${result?.display_name || guestName} נוסף כאורח חד־פעמי`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const lifecycle = useMutation({
     mutationFn: async (action: 'close' | 'open' | 'reopenPublished' | 'generate' | 'complete') => {
       const request = action === 'close'
@@ -180,9 +209,9 @@ export default function MatchPage() {
   const move = async (target: string) => {
     if (!dragged) return;
     const before = calcBalance(q.data?.teams || []);
-    const {error} = await supabase.rpc('move_team_player', {
+    const {error} = await supabase.rpc('move_team_participant', {
       p_match_id: id,
-      p_user_id: dragged,
+      p_team_player_id: dragged,
       p_target_team_id: target,
     });
     if (error) toast.error(error.message);
@@ -192,10 +221,10 @@ export default function MatchPage() {
     }
     setDragged(null);
   };
-  const toggleLock = async (userId: string) => {
-    const {data, error} = await supabase.rpc('toggle_team_player_lock', {
+  const toggleLock = async (teamPlayerId: string) => {
+    const {data, error} = await supabase.rpc('toggle_team_participant_lock', {
       p_match_id: id,
-      p_user_id: userId,
+      p_team_player_id: teamPlayerId,
     });
     if (error) toast.error(error.message);
     else {
@@ -203,20 +232,20 @@ export default function MatchPage() {
       refresh();
     }
   };
-  const selectSwap = async (userId: string) => {
+  const selectSwap = async (teamPlayerId: string) => {
     if (!swapFirst) {
-      setSwapFirst(userId);
+      setSwapFirst(teamPlayerId);
       toast('בחר עכשיו שחקן מקבוצה אחרת');
       return;
     }
-    if (swapFirst === userId) {
+    if (swapFirst === teamPlayerId) {
       setSwapFirst(null);
       return;
     }
-    const {error} = await supabase.rpc('swap_team_players', {
+    const {error} = await supabase.rpc('swap_team_participants', {
       p_match_id: id,
-      p_first_user: swapFirst,
-      p_second_user: userId,
+      p_first_player: swapFirst,
+      p_second_player: teamPlayerId,
     });
     if (error) toast.error(error.message);
     else {
@@ -261,6 +290,14 @@ export default function MatchPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+  const guestAttendance = useMutation({
+    mutationFn: async ({guestId, attended}: {guestId: string;attended: boolean}) => {
+      const {error} = await supabase.rpc('set_match_guest_attendance', {p_match_id: id, p_guest_id: guestId, p_attended: attended});
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success('נוכחות האורח עודכנה'); refresh(); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const ratingsWindow = useMutation({
     mutationFn: async (open: boolean) => {
       const {error} = await supabase.rpc(open ? 'open_match_ratings' : 'close_match_ratings', {p_match_id: id});
@@ -278,7 +315,7 @@ export default function MatchPage() {
   const shareTeams = async () => {
     if (!q.data?.teams.length) return;
     const m = q.data.match;
-    const lines = [`⚽ ${m.title}`, `${new Date(`${m.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})} | ${m.start_time.slice(0, 5)}`, m.location || '', '', ...q.data.teams.flatMap((t: any) => [`*${colorNames[t.color_key] || t.name}*`, ...t.team_players.map((p: any) => `• ${fullName(p.profiles)}`), '']), `⚖️ איזון: ${calcBalance(q.data.teams)}%`, `נשלח מ־TEAMUP`];
+    const lines = [`⚽ ${m.title}`, `${new Date(`${m.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})} | ${m.start_time.slice(0, 5)}`, m.location || '', '', ...q.data.teams.flatMap((t: any) => [`*${colorNames[t.color_key] || t.name}*`, ...t.team_players.map((p: any) => `• ${participantName(p)}${p.guest ? ' (אורח)' : ''}`), '']), `⚖️ איזון: ${calcBalance(q.data.teams)}%`, `נשלח מ־TEAMUP`];
     const text = lines.join('\n');
     try {
       if (navigator.share) await navigator.share({title: 'קבוצות TEAMUP', text});
@@ -298,6 +335,7 @@ export default function MatchPage() {
       </Card>
     );
   const {match, regs, teams} = q.data,
+    guests = q.data.guests || [],
     confirmed = regs.filter((r) => r.registration_status === 'confirmed'),
     wait = regs.filter((r) => r.registration_status === 'waitlisted');
   const registeredIds = new Set([...confirmed, ...wait].map((r) => r.user_id));
@@ -306,12 +344,13 @@ export default function MatchPage() {
   const isRegistered = mine?.response === 'attending' && ['confirmed', 'waitlisted'].includes(mine.registration_status);
   const isConfirmed = mine?.registration_status === 'confirmed';
   const isWaitlisted = mine?.registration_status === 'waitlisted';
-  const capacityPercent = Math.min(100, (confirmed.length / Math.max(match.capacity, 1)) * 100);
-  const spotsLeft = Math.max(0, match.capacity - confirmed.length);
+  const participantCount = confirmed.length + guests.length;
+  const capacityPercent = Math.min(100, (participantCount / Math.max(match.capacity, 1)) * 100);
+  const spotsLeft = Math.max(0, match.capacity - participantCount);
   const matchStarted = Date.now() >= new Date(`${match.match_date}T${match.start_time}`).getTime();
   const matchEnded = Date.now() >= matchEndAt(match).getTime();
   const balance = calcBalance(teams),
-    attendedCount = confirmed.filter((r) => r.attended).length,
+    attendedCount = confirmed.filter((r) => r.attended).length + guests.filter((guest) => guest.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
   const attendanceIsEditable = canManageAttendance && !match.ratings_open && !['completed', 'cancelled'].includes(match.status);
   const teamEditingIsOpen = match.status === 'teams_published' && !match.ratings_open && !matchStarted;
@@ -324,7 +363,7 @@ export default function MatchPage() {
     (match.status === 'teams_published' && (canCompleteMatch || canCloseRegistration || canGenerateTeams)) ||
     (match.status === 'completed' && canOpenRatings);
   const flow = [
-    ['הרשמה', confirmed.length > 0],
+    ['הרשמה', participantCount > 0],
     ['סגירת הרשמה', ['registration_closed', 'teams_published', 'completed'].includes(match.status)],
     ['חלוקת קבוצות', teams.length > 0],
     ['סימון נוכחות', attendedCount > 0],
@@ -350,7 +389,7 @@ export default function MatchPage() {
     });
     const resultLine = teamScores.size ? `🏁 ${[...teamScores.values()].map((team) => `${team.name} ${team.goals}`).join(' · ')}` : '';
     const scorersLine = scorers.size ? `⚽ מבקיעים: ${[...scorers.values()].sort((a,b) => b.goals-a.goals).map((scorer) => `${scorer.name}${scorer.goals > 1 ? ` ×${scorer.goals}` : ''}`).join(' · ')}` : '';
-    const lines = [`⚽ *${match.title}*`, `${date} | ${match.start_time.slice(0, 5)}`, match.location || '', resultLine, scorersLine, `👥 ${confirmed.length} רשומים · ${attendedCount} נכחו`, wait.length && match.status !== 'completed' ? `⏳ ${wait.length} ברשימת המתנה` : '', teams.length && match.status !== 'completed' ? `⚖️ איזון קבוצות: ${balance}%` : '', '', 'נשלח מ־TEAMUP'];
+    const lines = [`⚽ *${match.title}*`, `${date} | ${match.start_time.slice(0, 5)}`, match.location || '', resultLine, scorersLine, `👥 ${participantCount} משתתפים${guests.length ? ` (${guests.length} אורחים)` : ''} · ${attendedCount} נכחו`, wait.length && match.status !== 'completed' ? `⏳ ${wait.length} ברשימת המתנה` : '', teams.length && match.status !== 'completed' ? `⚖️ איזון קבוצות: ${balance}%` : '', '', 'נשלח מ־TEAMUP'];
     const text = lines.filter(Boolean).join('\n');
     try {
       if (navigator.share) await navigator.share({title: 'סיכום משחק TEAMUP', text});
@@ -381,7 +420,7 @@ export default function MatchPage() {
               <span><MapPin size={18}/>{match.location || 'המיקום יעודכן בהמשך'}</span>
             </div>
             <div className="match-capacity-block">
-              <div><span><Users size={17}/><strong>{confirmed.length}</strong> מתוך {match.capacity} שחקנים</span><small>{spotsLeft ? `${spotsLeft} מקומות פנויים` : wait.length ? `${wait.length} ממתינים` : 'הרשימה מלאה'}</small></div>
+              <div><span><Users size={17}/><strong>{participantCount}</strong> מתוך {match.capacity} משתתפים</span><small>{spotsLeft ? `${spotsLeft} מקומות פנויים` : wait.length ? `${wait.length} ממתינים` : 'הרשימה מלאה'}</small></div>
               <div className="match-capacity-meter"><i style={{width: `${capacityPercent}%`}}/></div>
             </div>
           </div>
@@ -429,14 +468,29 @@ export default function MatchPage() {
             <Badge>למנהלים בלבד</Badge>
           </div>
           {rosterIsEditable ? (
-            <div className="registration-manager-actions">
-              <Select value={selectedPlayer} onChange={(event) => setSelectedPlayer(event.target.value)} disabled={members.isLoading || manageRegistration.isPending} aria-label="בחירת שחקן להוספה">
-                <option value="">{members.isLoading ? 'טוען שחקנים...' : availableMembers.length ? 'בחירת שחקן מהקבוצה' : 'כל שחקני הקבוצה כבר ברשימה'}</option>
-                {availableMembers.map((member: any) => <option key={member.user_id} value={member.user_id}>{fullName(member.profiles)}</option>)}
-              </Select>
-              <Button disabled={!selectedPlayer || manageRegistration.isPending} onClick={() => manageRegistration.mutate({userId: selectedPlayer, attending: true})}>
-                <UserPlus size={17} />הוספה לרשימה
-              </Button>
+            <div className="registration-manager-panels">
+              <div className="registration-manager-actions">
+                <Select value={selectedPlayer} onChange={(event) => setSelectedPlayer(event.target.value)} disabled={members.isLoading || manageRegistration.isPending} aria-label="בחירת שחקן להוספה">
+                  <option value="">{members.isLoading ? 'טוען שחקנים...' : availableMembers.length ? 'בחירת שחקן מהקבוצה' : 'כל שחקני הקבוצה כבר ברשימה'}</option>
+                  {availableMembers.map((member: any) => <option key={member.user_id} value={member.user_id}>{fullName(member.profiles)}</option>)}
+                </Select>
+                <Button disabled={!selectedPlayer || manageRegistration.isPending} onClick={() => manageRegistration.mutate({userId: selectedPlayer, attending: true})}>
+                  <UserPlus size={17} />הוספת חבר קבוצה
+                </Button>
+              </div>
+              <div className="guest-manager">
+                <div className="guest-manager-copy"><strong>שחקן אורח חד־פעמי</strong><span>נכנס לערבוב הקבוצות, אך לא לדירוג, MVP או סטטיסטיקות.</span></div>
+                <div className="guest-manager-fields">
+                  <Input value={guestName} onChange={(event) => setGuestName(event.target.value)} maxLength={60} placeholder="שם האורח" aria-label="שם השחקן האורח" />
+                  <Select value={guestPosition} onChange={(event) => setGuestPosition(event.target.value)} aria-label="עמדת האורח">
+                    <option value="utility">עמדה: כללי</option><option value="goalkeeper">שוער</option><option value="defender">מגן</option><option value="midfielder">קשר</option><option value="winger">כנף</option><option value="striker">חלוץ</option>
+                  </Select>
+                  <Select value={guestRating} onChange={(event) => setGuestRating(event.target.value)} aria-label="רמת האורח לצורך איזון בלבד">
+                    <option value="1">רמת איזון: מתחיל</option><option value="2">רמת איזון: בסיסי</option><option value="3">רמת איזון: ממוצע</option><option value="4">רמת איזון: טוב</option><option value="5">רמת איזון: מצוין</option>
+                  </Select>
+                  <Button disabled={guestName.trim().length < 2 || manageGuest.isPending || !spotsLeft} onClick={() => manageGuest.mutate({})}><UserPlus size={17}/>הוספת אורח</Button>
+                </div>
+              </div>
             </div>
           ) : (
             <p className="empty-inline">לא ניתן לשנות את הרשימה לאחר פרסום הקבוצות או פתיחת הדירוג.</p>
@@ -447,7 +501,7 @@ export default function MatchPage() {
         <Card className="match-roster-card">
           <div className="section-title">
             <div className="roster-heading"><span className="roster-heading-icon"><Users size={19}/></span><div><h2>{canManageAttendance || matchStarted ? 'משתתפים ונוכחות' : 'רשימת המשתתפים'}</h2><p>{canManageAttendance || matchStarted ? 'סימון הנוכחות קובע מי יוכל להשתתף בדירוג ובדיווחי השערים.' : 'השחקנים שמקומם במשחק אושר.'}</p></div></div>
-            <Badge>{confirmed.length}/{match.capacity}</Badge>
+            <Badge>{participantCount}/{match.capacity}</Badge>
           </div>
           {attendanceIsEditable && (
             <div className="roster-toolbar">
@@ -464,7 +518,16 @@ export default function MatchPage() {
                 </div>}
               </div>
             ))}
-            {!confirmed.length && <div className="roster-empty"><Users size={25}/><div><strong>הרשימה עדיין ריקה</strong><span>היה הראשון שנרשם למשחק.</span></div></div>}
+            {guests.map((guest, i) => (
+              <div className="player-row guest-player-row" key={guest.id}>
+                <div className="player-row-main"><b>{confirmed.length + i + 1}</b><div className="player-avatar sm">{guest.display_name[0]}</div><span><strong>{guest.display_name} <Badge className="guest-badge">אורח</Badge></strong><small>{positionLabel(guest.preferred_position)} · רמת איזון {guest.balance_rating}</small></span></div>
+                {(rosterIsEditable || attendanceIsEditable || matchStarted) && <div className="roster-row-actions">
+                  {rosterIsEditable && <Button className="roster-remove-button" variant="danger" disabled={manageGuest.isPending} onClick={() => confirm(`להסיר את ${guest.display_name} מרשימת המשחק?`) && manageGuest.mutate({guestId: guest.id, remove: true})}><Trash2 size={15}/>הסרה</Button>}
+                  {attendanceIsEditable ? <Button className="roster-status-button" variant={guest.attended ? 'secondary' : 'ghost'} disabled={guestAttendance.isPending} onClick={() => guestAttendance.mutate({guestId: guest.id, attended: !guest.attended})}>{guest.attended ? <><Check size={15}/>נוכח</> : <><UserX size={15}/>לא הגיע</>}</Button> : matchStarted && <Badge className={guest.attended ? 'attendance-confirmed' : ''}>{guest.attended ? 'נוכח' : 'לא הגיע'}</Badge>}
+                </div>}
+              </div>
+            ))}
+            {!participantCount && <div className="roster-empty"><Users size={25}/><div><strong>הרשימה עדיין ריקה</strong><span>היה הראשון שנרשם למשחק.</span></div></div>}
           </div>
         </Card>
         <Card className="match-waitlist-card">
@@ -528,19 +591,19 @@ export default function MatchPage() {
                 </header>
                 <div className="team-player-list">
                   {team.team_players.map((p: any) => (
-                    <div key={p.id} className={`team-player ${swapFirst === p.user_id ? 'swap-selected' : ''} ${p.is_locked ? 'player-locked' : ''}`} draggable={canEditPublishedTeams && !p.is_locked} onDragStart={() => setDragged(p.user_id)} onClick={() => canEditPublishedTeams && selectSwap(p.user_id)} title={p.is_locked ? 'השחקן נעול ואי אפשר להעביר אותו' : canEditPublishedTeams ? 'לחיצה לבחירת השחקן להחלפה' : undefined}>
+                    <div key={p.id} className={`team-player ${swapFirst === p.id ? 'swap-selected' : ''} ${p.is_locked ? 'player-locked' : ''} ${p.guest ? 'guest-team-player' : ''}`} draggable={canEditPublishedTeams && !p.is_locked} onDragStart={() => setDragged(p.id)} onClick={() => canEditPublishedTeams && selectSwap(p.id)} title={p.is_locked ? 'השחקן נעול ואי אפשר להעביר אותו' : canEditPublishedTeams ? 'לחיצה לבחירת השחקן להחלפה' : undefined}>
                       <GripVertical size={15} />
-                      <div className="player-avatar sm">{p.profiles?.first_name?.[0] || 'ש'}</div>
+                      <div className="player-avatar sm">{p.guest?.display_name?.[0] || p.profiles?.first_name?.[0] || 'ש'}</div>
                       <div>
-                        <strong>{fullName(p.profiles)}</strong>
-                        <span>{positionLabel(p.assigned_position || p.profiles?.preferred_position)}</span>
+                        <strong>{participantName(p)} {p.guest && <Badge className="guest-badge">אורח</Badge>}</strong>
+                        <span>{positionLabel(participantPosition(p))}</span>
                       </div>
                       {canEditPublishedTeams ? (
                         <button
                           className="lock-player-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleLock(p.user_id);
+                            toggleLock(p.id);
                           }}
                           title={p.is_locked ? 'פתיחת נעילת השחקן' : 'נעילת השחקן במקומו'}
                         >

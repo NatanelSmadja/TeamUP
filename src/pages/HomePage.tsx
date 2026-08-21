@@ -50,17 +50,17 @@ export default function HomePage() {
       ]);
       const matchRows = (matches || []) as Match[];
       const regsByMatch: Record<string, Registration[]> = {};
+      const guestCountByMatch: Record<string, number> = {};
       if (matchRows.length) {
-        const {data: regs, error} = await supabase
-          .from('match_registrations')
-          .select('*,profiles!match_registrations_user_id_fkey(*)')
-          .in(
-            'match_id',
-            matchRows.map((m) => m.id),
-          )
-          .order('registered_at');
+        const matchIds = matchRows.map((m) => m.id);
+        const [{data: regs, error}, {data: guests, error: guestsError}] = await Promise.all([
+          supabase.from('match_registrations').select('*,profiles!match_registrations_user_id_fkey(*)').in('match_id', matchIds).order('registered_at'),
+          supabase.from('match_guests').select('match_id').in('match_id', matchIds),
+        ]);
         if (error) throw error;
+        if (guestsError) throw guestsError;
         for (const r of (regs || []) as Registration[]) (regsByMatch[r.match_id] ??= []).push(r);
+        for (const guest of guests || []) guestCountByMatch[guest.match_id] = (guestCountByMatch[guest.match_id] || 0) + 1;
       }
       let openRatings: any[] = [];
       if (user && ratingMatches?.length) {
@@ -88,6 +88,7 @@ export default function HomePage() {
       return {
         matches: matchRows,
         regsByMatch,
+        guestCountByMatch,
         polls: (polls || []).filter((p: any) => !isPollPast(p.week_start)),
         openRatings,
         activity: activity || [],
@@ -98,13 +99,13 @@ export default function HomePage() {
   });
   useRealtimeInvalidation(
     `v25home-${g?.group.id}`,
-    ['matches', 'match_registrations', 'weekly_polls', 'availability_votes', 'weekly_poll_responses', 'activity_events', 'player_public_stats'],
+    ['matches', 'match_registrations', 'match_guests', 'weekly_polls', 'availability_votes', 'weekly_poll_responses', 'activity_events', 'player_public_stats'],
     [key],
     !!g,
   );
   const featured = data?.matches[0];
   const featuredRegs = featured ? data?.regsByMatch[featured.id] || [] : [];
-  const confirmed = featuredRegs.filter((x) => x.registration_status === 'confirmed').length;
+  const confirmed = featuredRegs.filter((x) => x.registration_status === 'confirmed').length + (featured ? data?.guestCountByMatch[featured.id] || 0 : 0);
   const myReg = featuredRegs.find((x) => x.user_id === user?.id);
   const activePoll = data?.polls[0];
   const votes: any[] = activePoll?.availability_votes || [];
@@ -217,7 +218,7 @@ export default function HomePage() {
                   <div className="upcoming-match-list">
                     {data!.matches.slice(1).map((m) => {
                       const regs = data!.regsByMatch[m.id] || [];
-                      const count = regs.filter((r) => r.registration_status === 'confirmed').length;
+                      const count = regs.filter((r) => r.registration_status === 'confirmed').length + (data!.guestCountByMatch[m.id] || 0);
                       return (
                         <Link key={m.id} to={`/matches/${m.id}`}>
                           <div>

@@ -4530,6 +4530,57 @@ body {
     margin-top: 13px
 }
 
+.registration-manager-panels {
+    display: grid;
+    gap: 14px
+}
+
+.guest-manager {
+    display: grid;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(108, 143, 183, .14)
+}
+
+.guest-manager-copy strong,
+.guest-manager-copy span {
+    display: block
+}
+
+.guest-manager-copy strong {
+    color: #f1f6fb;
+    font-size: 14px
+}
+
+.guest-manager-copy span {
+    margin-top: 3px;
+    color: #91a2b7;
+    font-size: 11px
+}
+
+.guest-manager-fields {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.3fr) minmax(125px, .8fr) minmax(155px, 1fr) auto;
+    gap: 9px
+}
+
+.guest-player-row {
+    border-color: rgba(245, 196, 81, .2) !important
+}
+
+.guest-badge {
+    margin-inline-start: 5px;
+    padding: 2px 6px;
+    background: rgba(245, 196, 81, .12);
+    color: #e9c36a;
+    font-size: 9px;
+    vertical-align: middle
+}
+
+.guest-team-player {
+    background: rgba(245, 196, 81, .045)
+}
+
 .match-roster-grid {
     display: grid;
     grid-template-columns:minmax(0, 1.45fr) minmax(290px, .72fr);
@@ -4718,6 +4769,10 @@ body {
 }
 
 @media (max-width: 720px) {
+    .guest-manager-fields {
+        grid-template-columns: 1fr
+    }
+
     .match-page-v2 {
         gap: 12px
     }
