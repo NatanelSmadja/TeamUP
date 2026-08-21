@@ -21,7 +21,7 @@ export default function PlayerPage(){
   if(error)throw error;if(se)throw se;if(te)throw te;if(ge)throw ge;const goals=goalRows?.[0];
   return{p,ratings:trend||[],mvp:Number(st?.mvp_count||0),games:Number(st?.games_count||0),avg:Number(st?.avg_rating??p.base_rating??3),ratingCount:Number(st?.rating_count||0),totalGoals:Number(goals?.total_goals||0),monthlyGoals:Number(goals?.monthly_goals||0),matchGoals:Number(goals?.current_match_goals||0)};
  }});
- useRealtimeInvalidation(`player-goals-${id}-${g?.group.id}`,['goal_events'],[['player-card',id,g?.group.id]],!!id&&!!g);
+ useRealtimeInvalidation(`player-stats-${id}-${g?.group.id}`,['goal_events','player_public_stats','player_ratings','mvp_votes','match_registrations'],[['player-card',id,g?.group.id]],!!id&&!!g);
  if(isLoading)return <Card>טוען כרטיס שחקן...</Card>;if(!data)return <Card>השחקן לא נמצא.</Card>;
  const max=5;
  const share=async()=>{const name=fullName(data.p);const positions=(data.p.preferred_positions||[data.p.preferred_position]).filter(Boolean).map(positionLabel).join(' · ');const text=[`⚽ כרטיס השחקן של ${name}`,g?.group.name?`🏟️ ${g.group.name}`:'',positions?`📍 ${positions}`:'',`⭐ דירוג ${data.avg.toFixed(2)}/5`,`👟 ${data.games} משחקים`,`⚽ ${data.totalGoals} שערים`,`🏆 ${data.mvp} MVP`,'','TEAMUP · הקבוצה שלך. המשחק שלך.'].filter(Boolean).join('\n');const url=window.location.href;try{if(navigator.share)await navigator.share({title:`כרטיס השחקן של ${name} · TEAMUP`,text,url});else{await navigator.clipboard.writeText(`${text}\n${url}`);toast.success('כרטיס השחקן הועתק לשיתוף')}}catch(error:any){if(error?.name!=='AbortError')toast.error('לא הצלחנו לשתף את הכרטיס')}};

@@ -21,7 +21,7 @@ const colorNames: any = {
 };
 const calcBalance = (teams: any[]) => {
   const ratings = teams.map((t) => {
-    const vals = t.team_players.map((p: any) => Number(p.guest?.balance_rating ?? p.profiles?.base_rating ?? 3));
+    const vals = t.team_players.map((p: any) => Number(p.balance_rating_snapshot ?? p.guest?.balance_rating ?? p.profiles?.base_rating ?? 3));
     return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
   });
   return ratings.length ? Math.max(0, Math.round(100 - (Math.max(...ratings) - Math.min(...ratings)) * 20)) : 0;
