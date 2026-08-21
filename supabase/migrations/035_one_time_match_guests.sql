@@ -1,7 +1,7 @@
 -- One-time match guests participate in the roster and team balancing without
 -- becoming application users or affecting ratings, MVPs, goals or career stats.
 
-create table public.match_guests (
+create table if not exists public.match_guests (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references public.matches(id) on delete cascade,
   display_name text not null check (char_length(trim(display_name)) between 2 and 60),
@@ -15,11 +15,12 @@ create table public.match_guests (
   created_at timestamptz not null default now()
 );
 
-create unique index match_guests_unique_name_idx
+create unique index if not exists match_guests_unique_name_idx
 on public.match_guests(match_id,lower(trim(display_name)));
-create index match_guests_match_idx on public.match_guests(match_id,created_at);
+create index if not exists match_guests_match_idx on public.match_guests(match_id,created_at);
 
 alter table public.match_guests enable row level security;
+drop policy if exists "match guests visible to group members" on public.match_guests;
 create policy "match guests visible to group members"
 on public.match_guests for select to authenticated using (
   exists (
@@ -38,16 +39,24 @@ end $$;
 
 -- A team slot belongs to exactly one registered user or one match guest.
 alter table public.team_players alter column user_id drop not null;
-alter table public.team_players add column guest_id uuid references public.match_guests(id) on delete cascade;
-alter table public.team_players add constraint team_players_one_participant_check
-  check ((user_id is not null)::int + (guest_id is not null)::int = 1);
-create unique index team_players_team_guest_idx
+alter table public.team_players add column if not exists guest_id uuid references public.match_guests(id) on delete cascade;
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.team_players'::regclass
+      and conname='team_players_one_participant_check'
+  ) then
+    alter table public.team_players add constraint team_players_one_participant_check
+      check ((user_id is not null)::int + (guest_id is not null)::int = 1);
+  end if;
+end $$;
+create unique index if not exists team_players_team_guest_idx
   on public.team_players(team_id,guest_id) where guest_id is not null;
 
 -- Preserve undo for both registered users and guests.
 alter table public.team_edit_history alter column user_id drop not null;
-alter table public.team_edit_history add column guest_id uuid references public.match_guests(id) on delete set null;
-alter table public.team_edit_history add column team_player_id uuid references public.team_players(id) on delete set null;
+alter table public.team_edit_history add column if not exists guest_id uuid references public.match_guests(id) on delete set null;
+alter table public.team_edit_history add column if not exists team_player_id uuid references public.team_players(id) on delete set null;
 
 -- Capacity is shared by confirmed members and guests. This trigger also protects
 -- registration paths added before guests existed.
