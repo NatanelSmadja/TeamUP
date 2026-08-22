@@ -5071,6 +5071,21 @@ body {
     background: rgba(245, 196, 81, .045)
 }
 
+.guest-link-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px
+}
+
+.guest-link-controls select {
+    min-width: 175px
+}
+
+.guest-link-controls .tap {
+    white-space: nowrap
+}
+
 .match-roster-grid {
     display: grid;
     grid-template-columns:minmax(0, 1.45fr) minmax(290px, .72fr);

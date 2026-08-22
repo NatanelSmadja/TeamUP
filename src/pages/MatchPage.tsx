@@ -52,6 +52,7 @@ export default function MatchPage() {
   const [guestName, setGuestName] = useState('');
   const [guestPosition, setGuestPosition] = useState('utility');
   const [guestRating, setGuestRating] = useState('3');
+  const [guestLinkUsers, setGuestLinkUsers] = useState<Record<string, string>>({});
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -180,6 +181,29 @@ export default function MatchPage() {
       await refresh();
       qc.invalidateQueries({queryKey: ['v2-home']});
       toast.success(variables.remove ? `${result?.display_name || 'האורח'} הוסר` : `${result?.display_name || guestName} נוסף כאורח חד־פעמי`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const linkGuest = useMutation({
+    mutationFn: async ({guestId, userId}: {guestId: string;userId: string}) => {
+      const {data, error} = await supabase.rpc('link_match_guest_to_user', {
+        p_match_id: id,
+        p_guest_id: guestId,
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      return data as {guest_name?: string;player_name?: string};
+    },
+    onSuccess: async (result, variables) => {
+      setGuestLinkUsers((current) => {
+        const next = {...current};
+        delete next[variables.guestId];
+        return next;
+      });
+      await refresh();
+      qc.invalidateQueries({queryKey: ['v2-home']});
+      qc.invalidateQueries({queryKey: ['open-ratings']});
+      toast.success(`${result?.guest_name || 'האורח'} הוחלף בהצלחה ב־${result?.player_name || 'השחקן הרשום'}`);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -340,7 +364,10 @@ export default function MatchPage() {
     wait = regs.filter((r) => r.registration_status === 'waitlisted');
   const registeredIds = new Set([...confirmed, ...wait].map((r) => r.user_id));
   const availableMembers = (members.data || []).filter((member: any) => !registeredIds.has(member.user_id));
+  const confirmedIds = new Set(confirmed.map((registration) => registration.user_id));
+  const guestLinkCandidates = (members.data || []).filter((member: any) => !confirmedIds.has(member.user_id));
   const rosterIsEditable = canManageRegistrations && !match.ratings_open && ['registration_open', 'registration_closed'].includes(match.status);
+  const guestLinkIsEditable = canManageRegistrations && !match.ratings_open && ['registration_open', 'registration_closed', 'teams_published'].includes(match.status);
   const isRegistered = mine?.response === 'attending' && ['confirmed', 'waitlisted'].includes(mine.registration_status);
   const isConfirmed = mine?.registration_status === 'confirmed';
   const isWaitlisted = mine?.registration_status === 'waitlisted';
@@ -521,7 +548,18 @@ export default function MatchPage() {
             {guests.map((guest, i) => (
               <div className="player-row guest-player-row" key={guest.id}>
                 <div className="player-row-main"><b>{confirmed.length + i + 1}</b><div className="player-avatar sm">{guest.display_name[0]}</div><span><strong>{guest.display_name} <Badge className="guest-badge">אורח</Badge></strong><small>{positionLabel(guest.preferred_position)} · רמת איזון {guest.balance_rating}</small></span></div>
-                {(rosterIsEditable || attendanceIsEditable || matchStarted) && <div className="roster-row-actions">
+                {(rosterIsEditable || guestLinkIsEditable || attendanceIsEditable || matchStarted) && <div className="roster-row-actions">
+                  {guestLinkIsEditable && <div className="guest-link-controls">
+                    <Select value={guestLinkUsers[guest.id] || ''} onChange={(event) => setGuestLinkUsers((current) => ({...current, [guest.id]: event.target.value}))} disabled={members.isLoading || linkGuest.isPending} aria-label={`בחירת חשבון שיחליף את ${guest.display_name}`}>
+                      <option value="">{members.isLoading ? 'טוען שחקנים...' : 'בחירת המשתמש שנרשם'}</option>
+                      {guestLinkCandidates.map((member: any) => <option key={member.user_id} value={member.user_id}>{fullName(member.profiles)}</option>)}
+                    </Select>
+                    <Button variant="secondary" disabled={!guestLinkUsers[guest.id] || linkGuest.isPending} onClick={() => {
+                      const selected = guestLinkCandidates.find((member: any) => member.user_id === guestLinkUsers[guest.id]);
+                      const playerName = selected ? fullName(selected.profiles) : 'השחקן';
+                      if (confirm(`להחליף את האורח ${guest.display_name} בחשבון של ${playerName}? המקום, הקבוצה והנוכחות יישמרו.`)) linkGuest.mutate({guestId: guest.id, userId: guestLinkUsers[guest.id]});
+                    }}><RefreshCcw size={15}/>המרה לחשבון</Button>
+                  </div>}
                   {rosterIsEditable && <Button className="roster-remove-button" variant="danger" disabled={manageGuest.isPending} onClick={() => confirm(`להסיר את ${guest.display_name} מרשימת המשחק?`) && manageGuest.mutate({guestId: guest.id, remove: true})}><Trash2 size={15}/>הסרה</Button>}
                   {attendanceIsEditable ? <Button className="roster-status-button" variant={guest.attended ? 'secondary' : 'ghost'} disabled={guestAttendance.isPending} onClick={() => guestAttendance.mutate({guestId: guest.id, attended: !guest.attended})}>{guest.attended ? <><Check size={15}/>נוכח</> : <><UserX size={15}/>לא הגיע</>}</Button> : matchStarted && <Badge className={guest.attended ? 'attendance-confirmed' : ''}>{guest.attended ? 'נוכח' : 'לא הגיע'}</Badge>}
                 </div>}
