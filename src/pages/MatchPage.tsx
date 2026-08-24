@@ -400,7 +400,10 @@ export default function MatchPage() {
   const shareSummary = async () => {
     const date = new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'});
     const {data: goals, error} = await supabase.from('goal_events').select('scorer_user_id,team_id,scorer:profiles!goal_events_scorer_user_id_fkey(first_name,last_name),team:teams(name,color_key)').eq('match_id', match.id).eq('status', 'approved');
-    if (error) toast.error('לא הצלחנו לטעון את השערים לסיכום');
+    if (error) {
+      toast.error('לא הצלחנו לטעון את השערים לסיכום');
+      return;
+    }
     const teamScores = new Map<string, {name: string;goals: number}>();
     teams.forEach((team: any) => teamScores.set(team.id, {name: colorNames[team.color_key] || team.name, goals: 0}));
     const scorers = new Map<string, {name: string;goals: number}>();
@@ -414,10 +417,37 @@ export default function MatchPage() {
       if (scorer) scorer.goals += 1;
       else scorers.set(goal.scorer_user_id, {name: fullName(goal.scorer as any), goals: 1});
     });
-    const resultLine = teamScores.size ? `🏁 ${[...teamScores.values()].map((team) => `${team.name} ${team.goals}`).join(' · ')}` : '';
-    const scorersLine = scorers.size ? `⚽ מבקיעים: ${[...scorers.values()].sort((a,b) => b.goals-a.goals).map((scorer) => `${scorer.name}${scorer.goals > 1 ? ` ×${scorer.goals}` : ''}`).join(' · ')}` : '';
-    const lines = [`⚽ *${match.title}*`, `${date} | ${match.start_time.slice(0, 5)}`, match.location || '', resultLine, scorersLine, `👥 ${participantCount} משתתפים${guests.length ? ` (${guests.length} אורחים)` : ''} · ${attendedCount} נכחו`, wait.length && match.status !== 'completed' ? `⏳ ${wait.length} ברשימת המתנה` : '', teams.length && match.status !== 'completed' ? `⚖️ איזון קבוצות: ${balance}%` : '', '', 'נשלח מ־TEAMUP'];
-    const text = lines.filter(Boolean).join('\n');
+    const attendanceLine = `👥 נוכחות: ${attendedCount} מתוך ${participantCount}${guests.length ? ` · כולל ${guests.length} ${guests.length === 1 ? 'אורח' : 'אורחים'}` : ''}`;
+    const completedLines: Array<string | null> = [
+      `⚽ *${match.title}*`,
+      `📅 ${date} · ${match.start_time.slice(0, 5)}`,
+      match.location ? `📍 ${match.location}` : null,
+      '',
+      '*תוצאת המשחק*',
+      ...([...teamScores.values()].map((team) => `• ${team.name}: ${team.goals}`)),
+      '',
+      '*כובשים*',
+      ...(scorers.size
+        ? [...scorers.values()].sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name, 'he')).map((scorer) => `• ${scorer.name} — ${scorer.goals === 1 ? 'שער אחד' : `${scorer.goals} שערים`}`)
+        : ['• לא דווחו שערים']),
+      '',
+      attendanceLine,
+      '',
+      'נשלח מ־TEAMUP',
+    ];
+    const upcomingLines: Array<string | null> = [
+      `⚽ *${match.title}*`,
+      `📅 ${date} · ${match.start_time.slice(0, 5)}`,
+      match.location ? `📍 ${match.location}` : null,
+      '',
+      `👥 ${participantCount} משתתפים${guests.length ? ` · ${guests.length} ${guests.length === 1 ? 'אורח' : 'אורחים'}` : ''}`,
+      wait.length ? `⏳ ${wait.length} ברשימת המתנה` : null,
+      teams.length ? `⚖️ איזון קבוצות: ${balance}%` : null,
+      '',
+      'נשלח מ־TEAMUP',
+    ];
+    const lines = match.status === 'completed' ? completedLines : upcomingLines;
+    const text = lines.filter((line): line is string => line !== null).join('\n');
     try {
       if (navigator.share) await navigator.share({title: 'סיכום משחק TEAMUP', text});
       else {
