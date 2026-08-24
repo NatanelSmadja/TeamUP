@@ -96,7 +96,7 @@ export default function Layout() {
     <div className="app-shell">
       <aside className="desktop-sidebar">
         <div className="brand-mark">
-          <span>⚽</span>
+          <span><img src="/brand/teamup-logo-128.png" alt="" /></span>
           <div>
             <strong>TEAMUP</strong>
             <small>Multi‑Club Platform</small>
@@ -150,9 +150,7 @@ export default function Layout() {
 
         <header className="mobile-topbar safe-top">
           <button className="mobile-group-button" onClick={() => setGroupOpen((v) => !v)} aria-expanded={groupOpen}>
-            <span className="mobile-group-logo" style={{background: g?.group.theme_color || '#2563eb'}}>
-              {g?.group.name?.trim()?.slice(0, 1) || 'T'}
-            </span>
+            <span className="mobile-group-logo" style={{'--group-color': g?.group.theme_color || '#2563eb'} as React.CSSProperties}><img src="/brand/teamup-logo-128.png" alt="" /></span>
             <span>
               <small>הקבוצה הפעילה</small>
               <strong>{g?.group.name || 'בחירת קבוצה'}</strong>

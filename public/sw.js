@@ -1,5 +1,5 @@
-const CACHE = 'teamup-v3';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest'];
+const CACHE = 'teamup-v4';
+const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/brand/teamup-logo-128.png', '/icons/teamup-favicon-32.png', '/icons/teamup-icon-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -42,6 +42,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'TEAMUP', {
       body: payload.body || '',
+      icon: '/icons/teamup-icon-192.png',
+      badge: '/icons/teamup-favicon-32.png',
       tag: payload.tag || payload.notificationId || 'teamup-update',
       data: {
         url: payload.url || '/',
