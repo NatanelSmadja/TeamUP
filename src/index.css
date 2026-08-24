@@ -5047,6 +5047,52 @@ body {
     letter-spacing: -.025em
 }
 
+.match-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px
+}
+
+.match-title-row h1 {
+    min-width: 0
+}
+
+.match-title-edit {
+    display: grid;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 1px solid rgba(117, 158, 207, .23);
+    border-radius: 12px;
+    color: #9db7d8;
+    background: rgba(15, 39, 65, .72);
+    transition: border-color .18s ease, color .18s ease, background .18s ease
+}
+
+.match-title-edit:hover, .match-title-edit:focus-visible {
+    border-color: rgba(91, 220, 184, .45);
+    color: var(--mint);
+    background: rgba(54, 211, 173, .1)
+}
+
+.match-title-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    margin: 15px 0 19px
+}
+
+.match-title-editor .form-control {
+    min-width: 0;
+    font-size: 18px;
+    font-weight: 850
+}
+
+.match-title-editor .tap {
+    padding: 10px 13px
+}
+
 .match-detail-list {
     display: flex;
     flex-wrap: wrap;
@@ -5526,6 +5572,15 @@ body {
     .match-page-v2 .match-hero h1 {
         margin: 13px 0 16px;
         font-size: 32px
+    }
+
+    .match-title-editor {
+        grid-template-columns: 1fr 1fr;
+        margin: 13px 0 16px
+    }
+
+    .match-title-editor .form-control {
+        grid-column: 1 / -1
     }
 
     .match-detail-list {

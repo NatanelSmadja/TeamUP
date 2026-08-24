@@ -36,6 +36,7 @@ const formatDate = (date: string) =>
   });
 const perms = [
   ['create_match', 'פתיחת משחקים'],
+  ['edit_match', 'עריכת פרטי משחק'],
   ['close_registration', 'סגירה ופתיחה של הרשמה'],
   ['manage_registrations', 'שליחת תזכורות להרשמה'],
   ['generate_teams', 'יצירת וחלוקת קבוצות'],

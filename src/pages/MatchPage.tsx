@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Link, useParams} from 'react-router-dom';
-import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, GripVertical, Lock, LockOpen, MapPin, MessageCircle, RefreshCcw, Repeat2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users} from 'lucide-react';
+import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, GripVertical, Lock, LockOpen, MapPin, MessageCircle, Pencil, RefreshCcw, Repeat2, Save, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users, X} from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge, Button, Card, Input, Select} from '../components/ui';
 import {MatchSkeleton} from '../components/Skeletons';
@@ -41,6 +41,7 @@ export default function MatchPage() {
   const {user, profile} = useAuth();
   const {data: g} = useGroup();
   const canEditTeams = canManage(g, 'edit_teams');
+  const canEditMatch = canManage(g, 'edit_match') || isSystemAdmin(profile);
   const canGenerateTeams = canManage(g, 'generate_teams');
   const canCloseRegistration = canManage(g, 'close_registration');
   const canManageResults = canManage(g, 'enter_results');
@@ -53,6 +54,8 @@ export default function MatchPage() {
   const [guestPosition, setGuestPosition] = useState('utility');
   const [guestRating, setGuestRating] = useState('3');
   const [guestLinkUsers, setGuestLinkUsers] = useState<Record<string, string>>({});
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [matchTitle, setMatchTitle] = useState('');
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -336,6 +339,25 @@ export default function MatchPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+  const renameMatch = useMutation({
+    mutationFn: async () => {
+      const title = matchTitle.trim().replace(/\s+/g, ' ');
+      if (title.length < 2) throw new Error('שם המשחק חייב להכיל לפחות 2 תווים');
+      if (title.length > 80) throw new Error('שם המשחק יכול להכיל עד 80 תווים');
+      const {error} = await supabase.rpc('rename_match', {p_match_id: id, p_title: title});
+      if (error) throw error;
+      return title;
+    },
+    onSuccess: () => {
+      toast.success('שם המשחק עודכן');
+      setEditingTitle(false);
+      qc.invalidateQueries({queryKey: key});
+      qc.invalidateQueries({queryKey: ['admin-matches']});
+      qc.invalidateQueries({queryKey: ['matches']});
+      qc.invalidateQueries({queryKey: ['v2-home']});
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const shareTeams = async () => {
     if (!q.data?.teams.length) return;
     const m = q.data.match;
@@ -470,7 +492,14 @@ export default function MatchPage() {
         <div className="match-hero-main">
           <div className="match-hero-copy">
             <Badge><span className="status-dot"/>{statusLabel(match.status)}</Badge>
-            <h1>{match.title}</h1>
+            {editingTitle ? <form className="match-title-editor" onSubmit={(event) => {event.preventDefault();renameMatch.mutate()}}>
+              <Input autoFocus value={matchTitle} maxLength={80} onChange={(event) => setMatchTitle(event.target.value)} aria-label="שם המשחק"/>
+              <Button type="submit" disabled={renameMatch.isPending || matchTitle.trim().length < 2}><Save size={17}/>{renameMatch.isPending ? 'שומר...' : 'שמירה'}</Button>
+              <Button type="button" variant="ghost" disabled={renameMatch.isPending} onClick={() => {setEditingTitle(false);setMatchTitle(match.title)}}><X size={17}/>ביטול</Button>
+            </form> : <div className="match-title-row">
+              <h1>{match.title}</h1>
+              {canEditMatch && <button type="button" className="match-title-edit" title="עריכת שם המשחק" aria-label="עריכת שם המשחק" onClick={() => {setMatchTitle(match.title);setEditingTitle(true)}}><Pencil size={17}/></button>}
+            </div>}
             <div className="match-detail-list">
               <span><CalendarDays size={18}/>{new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'})}</span>
               <span><Clock3 size={18}/>{match.start_time.slice(0, 5)}{match.end_time ? `–${match.end_time.slice(0, 5)}` : ''}</span>
