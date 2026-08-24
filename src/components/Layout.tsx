@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {
   Activity,
   BarChart3,
+  CalendarCheck2,
   CalendarDays,
   ChevronDown,
   Database,
@@ -29,15 +30,16 @@ import {syncExistingPushSubscription} from '../lib/pushNotifications';
 
 const base = [
   ['/', 'בית', Home],
-  ['/groups', 'קבוצות', Layers3],
-  ['/availability', 'סקר', CalendarDays],
-  ['/squad', 'קבוצה', UsersRound],
+  ['/matches', 'משחקים', CalendarDays],
+  ['/availability', 'זמינות', CalendarCheck2],
+  ['/squad', 'סגל', UsersRound],
+  ['/groups', 'הקבוצות שלי', Layers3],
   ['/stats', 'סטטיסטיקות', BarChart3],
   ['/activity', 'פעילות', Activity],
   ['/history', 'היסטוריה', History],
 ] as const;
 
-const primaryMobilePaths = ['/', '/groups', '/availability', '/squad'];
+const primaryMobilePaths = ['/', '/matches', '/availability', '/squad'];
 
 export default function Layout() {
   const {data: g, memberships, setActiveGroupId} = useGroup();
@@ -258,6 +260,8 @@ export default function Layout() {
 
 function mobileDescription(path: string) {
   const descriptions: Record<string, string> = {
+    '/matches': 'המשחקים הקרובים שלך',
+    '/groups': 'מעבר וניהול קבוצות',
     '/stats': 'דירוגים, הישגים ומובילים',
     '/activity': 'כל מה שקרה בקבוצה',
     '/history': 'משחקים קודמים ותוצאות',
