@@ -285,7 +285,7 @@ function SystemPlayerCard({data,allGroups,assigning,unassigning,onAssign,onUnass
     <div className="system-player-stats">
       <Card><Goal/><strong>{Number(s.goals||0)}</strong><span>שערים</span></Card>
       <Card><Star/><strong>{Number(s.avg_rating||p.base_rating||3).toFixed(2)}</strong><span>דירוג</span></Card>
-      <Card><Trophy/><strong>{Number(s.mvp||0)}</strong><span>MVP</span></Card>
+      <Card><Trophy/><strong>{Number(s.mvp||0)}</strong><span>זכיות MVP</span></Card>
       <Card><Footprints/><strong>{Number(s.games||0)}</strong><span>משחקים</span></Card>
     </div>
     <section className="system-player-groups">

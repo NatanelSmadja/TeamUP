@@ -3269,6 +3269,144 @@ body {
     color: #fff
 }
 
+.stats-page {
+    display: grid;
+    gap: 18px
+}
+
+.stats-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px;
+    overflow: hidden;
+    background: radial-gradient(circle at 12% 15%, rgba(82, 213, 169, .16), transparent 34%), linear-gradient(135deg, #153555, #0d1d31 68%);
+    border-color: rgba(82, 213, 169, .2)
+}
+
+.stats-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--mint);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em
+}
+
+.stats-hero h1 {
+    margin: 7px 0 5px;
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 950
+}
+
+.stats-hero p,
+.stats-list-card .section-title p {
+    color: var(--muted)
+}
+
+.stats-hero-numbers {
+    display: grid;
+    grid-template-columns:repeat(2, minmax(105px, 1fr));
+    gap: 10px
+}
+
+.stats-hero-numbers span {
+    display: grid;
+    gap: 2px;
+    min-width: 120px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 18px;
+    color: #9eb0c4;
+    background: rgba(4, 14, 27, .4);
+    font-size: 11px
+}
+
+.stats-hero-numbers strong {
+    color: #fff;
+    font-size: 28px
+}
+
+.stats-awards-grid,
+.stats-board-grid {
+    display: grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap: 14px
+}
+
+.stats-awards-grid .player-of-month {
+    min-width: 0
+}
+
+.stats-awards-grid .goal-award {
+    background: linear-gradient(135deg, rgba(82, 213, 169, .16), rgba(18, 42, 70, .92) 48%, rgba(10, 25, 43, .96));
+    border-color: rgba(82, 213, 169, .25)
+}
+
+.stats-awards-grid .goal-award .month-crown,
+.stats-awards-grid .goal-award span {
+    color: var(--mint)
+}
+
+.stats-highlight-grid {
+    display: grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap: 14px
+}
+
+.stats-highlight-grid .podium-card {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(86, 130, 176, .2);
+    background: linear-gradient(155deg, rgba(23, 52, 84, .92), rgba(10, 24, 42, .96))
+}
+
+.stats-highlight-grid .podium-card:after {
+    content: "";
+    position: absolute;
+    inset: auto -35px -55px auto;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(82, 213, 169, .06)
+}
+
+.stats-highlight-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 2px;
+    border-radius: 15px;
+    color: var(--gold);
+    background: rgba(245, 196, 81, .1)
+}
+
+.stats-list-card {
+    min-width: 0;
+    padding: 21px;
+    background: linear-gradient(155deg, rgba(14, 31, 52, .98), rgba(9, 22, 38, .98))
+}
+
+.stats-list-card .section-title h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.stats-list-card .leader-row:last-child {
+    padding-bottom: 4px
+}
+
+.stats-loading {
+    padding: 38px;
+    text-align: center;
+    color: var(--muted)
+}
+
 .player-of-month {
     display: grid;
     grid-template-columns:auto 1fr auto;
@@ -3378,12 +3516,31 @@ body {
 }
 
 @media (max-width: 850px) {
+    .stats-awards-grid,
+    .stats-board-grid {
+        grid-template-columns:1fr
+    }
+
     .achievement-grid {
         grid-template-columns:1fr 1fr
     }
 }
 
 @media (max-width: 620px) {
+    .stats-hero {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 21px
+    }
+
+    .stats-hero-numbers span {
+        min-width: 0
+    }
+
+    .stats-highlight-grid {
+        grid-template-columns:1fr
+    }
+
     .team-editor-toolbar {
         display: grid;
         grid-template-columns:1fr 1fr

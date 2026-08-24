@@ -348,7 +348,7 @@ export default function HomePage() {
             <div>
               <small>HALL OF FAME</small>
               <h2>{data?.leader ? fullName(data.leader.profiles) : 'עדיין אין מוביל'}</h2>
-              <p>{data?.leader ? `${data.leader.mvp} MVP · דירוג ${data.leader.rating.toFixed(2)}` : 'הדירוגים הראשונים יופיעו כאן'}</p>
+              <p>{data?.leader ? `${data.leader.mvp} זכיות MVP · דירוג ${data.leader.rating.toFixed(2)}` : 'הדירוגים הראשונים יופיעו כאן'}</p>
             </div>
           </Card>
         </aside>
