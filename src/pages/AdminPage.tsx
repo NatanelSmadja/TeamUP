@@ -4,11 +4,13 @@ import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle,
 import {Link} from 'react-router-dom';
 import {toast} from 'sonner';
 import {Badge, Button, Card, FieldHelp, Input, Tooltip} from '../components/ui';
-import {useGroup, canManage} from '../hooks/useGroup';
+import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
+import {useAuth} from '../contexts/AuthContext';
 import {supabase} from '../lib/supabase';
 import {statusLabel, fullName, isPollPast} from '../lib/utils';
 import type {Match} from '../types';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
+import {RatingAuditPanel} from '../components/RatingAuditPanel';
 
 const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 const localDateValue = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -40,15 +42,20 @@ const perms = [
   ['edit_teams', 'עריכת קבוצות ושחקנים'],
   ['enter_results', 'ניהול תוצאות ושערים'],
   ['open_ratings', 'פתיחת דירוגים'],
+  ['view_rating_audit', 'צפייה בפירוט דירוגים'],
   ['manage_polls', 'פתיחה וניהול סקרים'],
   ['manage_members', 'ניהול שחקנים ובקשות'],
 ];
 
-type Tab = 'matches' | 'polls' | 'members';
+type Tab = 'matches' | 'ratings' | 'polls' | 'members';
 export default function AdminPage() {
   const {data: g} = useGroup();
+  const {profile} = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(location.search).get('tab') === 'members' ? 'members' : 'matches'));
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = new URLSearchParams(location.search).get('tab');
+    return requested === 'members' || requested === 'polls' || requested === 'ratings' ? requested : 'matches';
+  });
   const [open, setOpen] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(2);
@@ -75,16 +82,19 @@ export default function AdminPage() {
     canGenerateTeams = canManage(g, 'generate_teams'),
     canManageResults = canManage(g, 'enter_results'),
     canOpenRatings = canManage(g, 'open_ratings'),
+    canViewRatingAudit = isSystemAdmin(profile) || canManage(g, 'view_rating_audit'),
     canManagePolls = canManage(g, 'manage_polls'),
     canManageMembers = canManage(g, 'manage_members');
   const canManageMatches = canCreateMatch || canCloseRegistration || canManageRegistrations || canGenerateTeams || canManageResults || canOpenRatings;
-  const allowed = canManageMatches || canManagePolls || canManageMembers;
+  const allowed = canManageMatches || canViewRatingAudit || canManagePolls || canManageMembers;
   useEffect(() => {
     if (!allowed) return;
-    if (tab === 'matches' && !canManageMatches) setTab(canManagePolls ? 'polls' : 'members');
-    else if (tab === 'polls' && !canManagePolls) setTab(canManageMatches ? 'matches' : 'members');
-    else if (tab === 'members' && !canManageMembers) setTab(canManageMatches ? 'matches' : 'polls');
-  }, [allowed, tab, canManageMatches, canManagePolls, canManageMembers]);
+    const fallback: Tab = canManageMatches ? 'matches' : canViewRatingAudit ? 'ratings' : canManagePolls ? 'polls' : 'members';
+    if (tab === 'matches' && !canManageMatches) setTab(fallback);
+    else if (tab === 'ratings' && !canViewRatingAudit) setTab(fallback);
+    else if (tab === 'polls' && !canManagePolls) setTab(fallback);
+    else if (tab === 'members' && !canManageMembers) setTab(fallback);
+  }, [allowed, tab, canManageMatches, canViewRatingAudit, canManagePolls, canManageMembers]);
   const {data: matches = []} = useQuery({
     queryKey: ['admin-matches', g?.group.id],
     enabled: !!g && canManageMatches,
@@ -251,6 +261,11 @@ export default function AdminPage() {
               סקרים
             </button>
           )}
+          {canViewRatingAudit && (
+            <button className={tab === 'ratings' ? 'active' : ''} onClick={() => setTab('ratings')}>
+              ביקורת דירוגים
+            </button>
+          )}
           {canManageMembers && (
             <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>
               שחקנים
@@ -258,6 +273,7 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+      {tab === 'ratings' && canViewRatingAudit && g && <RatingAuditPanel groupId={g.group.id}/>}
       {tab === 'matches' && canManageMatches && (
         <>
           {canCreateMatch && (

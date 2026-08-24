@@ -1343,6 +1343,66 @@ button {
     font-size: 13px
 }
 
+.rating-audit-workspace { display: grid; gap: 14px }
+.rating-audit-intro { display: grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 22px; border-color: rgba(245, 196, 81, .24); background: linear-gradient(135deg, rgba(245, 196, 81, .1), rgba(15, 34, 57, .96) 48%, rgba(9, 23, 40, .98)) }
+.rating-audit-intro-icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 16px; color: var(--gold); background: rgba(245, 196, 81, .12) }
+.rating-audit-intro h2 { margin: 5px 0 3px; font-size: 22px; font-weight: 950 }
+.rating-audit-intro p, .rating-audit-picker span, .rating-audit-rater summary span, .rating-audit-empty span { color: var(--muted) }
+.rating-audit-intro > svg { color: var(--mint) }
+.rating-audit-picker { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px }
+.rating-audit-picker > div span, .rating-audit-picker > div strong { display: block }
+.rating-audit-picker > div span { margin-bottom: 3px; font-size: 11px }
+.rating-audit-picker select { width: min(100%, 390px) }
+.rating-audit-kpis { display: grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap: 10px }
+.rating-audit-kpis .card { display: grid; justify-items: center; gap: 5px; padding: 17px; text-align: center; background: linear-gradient(155deg, rgba(20, 44, 72, .9), rgba(10, 24, 41, .96)) }
+.rating-audit-kpis svg { color: var(--mint) }
+.rating-audit-kpis strong { font-size: 25px }
+.rating-audit-kpis span { color: var(--muted); font-size: 11px }
+.rating-audit-list-card { padding: 21px; background: #0b192b }
+.rating-audit-list-card .section-title h2 { display: flex; align-items: center; gap: 8px }
+.rating-audit-list-card .section-title p { color: var(--muted) }
+.rating-audit-raters { display: grid; gap: 8px; margin-top: 15px }
+.rating-audit-rater { overflow: hidden; border: 1px solid rgba(104, 139, 178, .17); border-radius: 16px; background: rgba(16, 35, 58, .68) }
+.rating-audit-rater summary { display: grid; grid-template-columns:auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 13px 15px; cursor: pointer; list-style: none }
+.rating-audit-rater summary::-webkit-details-marker { display: none }
+.rating-audit-rater summary strong, .rating-audit-rater summary span { display: block }
+.rating-audit-rater summary span { margin-top: 2px; font-size: 11px }
+.rating-audit-summary-score { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 11px; color: var(--gold); background: rgba(245, 196, 81, .08); font-weight: 900 }
+.rating-audit-chevron { color: #8fa3ba; transition: transform .2s ease }
+.rating-audit-rater[open] .rating-audit-chevron { transform: rotate(180deg) }
+.rating-audit-rater-body { display: grid; gap: 10px; padding: 0 15px 15px; border-top: 1px solid rgba(104, 139, 178, .13) }
+.rating-audit-mvp { display: grid; grid-template-columns:auto 1fr auto; align-items: center; gap: 9px; margin-top: 12px; padding: 11px 12px; border-radius: 13px; color: #cdd9e8; background: rgba(245, 196, 81, .07) }
+.rating-audit-mvp svg, .rating-audit-mvp strong { color: var(--gold) }
+.rating-audit-given-list { display: grid; gap: 7px }
+.rating-audit-given-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 12px; border-radius: 13px; background: rgba(5, 16, 29, .38) }
+.rating-audit-given-row > div:first-child span, .rating-audit-given-row > div:first-child strong { display: block }
+.rating-audit-given-row > div:first-child span { color: var(--muted); font-size: 10px }
+.rating-audit-score { display: flex; align-items: center; gap: 9px }
+.rating-audit-score > div { display: flex; gap: 4px }
+.rating-audit-score i { width: 8px; height: 19px; border-radius: 5px; background: rgba(255, 255, 255, .08) }
+.rating-audit-score i.active { background: linear-gradient(180deg, var(--gold), #d99d34) }
+.rating-audit-score strong { min-width: 25px; color: var(--gold) }
+.rating-audit-loading, .rating-audit-empty { padding: 28px; text-align: center; color: var(--muted) }
+.rating-audit-empty { display: flex; align-items: center; justify-content: center; gap: 10px }
+.rating-audit-empty strong, .rating-audit-empty span { display: block; text-align: start }
+
+@media (max-width: 760px) {
+    .rating-audit-picker { align-items: stretch; flex-direction: column }
+    .rating-audit-picker select { width: 100% }
+    .rating-audit-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
+
+@media (max-width: 520px) {
+    .rating-audit-intro { grid-template-columns: auto minmax(0, 1fr); padding: 18px }
+    .rating-audit-intro > svg { display: none }
+    .rating-audit-rater summary { grid-template-columns: auto minmax(0, 1fr) auto }
+    .rating-audit-summary-score { grid-column: 2; justify-self: start }
+    .rating-audit-chevron { grid-column: 3; grid-row: 1 }
+    .rating-audit-given-row { align-items: flex-start; flex-direction: column }
+    .rating-audit-mvp { grid-template-columns: auto minmax(0, 1fr) }
+    .rating-audit-mvp strong { grid-column: 2 }
+}
+
 .member-head {
     display: flex;
     align-items: center;
