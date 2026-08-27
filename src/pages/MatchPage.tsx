@@ -1,7 +1,7 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {Link, useParams} from 'react-router-dom';
-import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, GripVertical, Lock, LockOpen, MapPin, MessageCircle, Pencil, RefreshCcw, Repeat2, Save, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users, X} from 'lucide-react';
+import {Link, useParams, useSearchParams} from 'react-router-dom';
+import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, Eye, GripVertical, Lock, LockOpen, MapPin, MessageCircle, Pencil, RefreshCcw, Repeat2, Save, Share2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users, X} from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge, Button, Card, Input, Select} from '../components/ui';
 import {MatchSkeleton} from '../components/Skeletons';
@@ -12,6 +12,7 @@ import type {Match, MatchGuest, Registration} from '../types';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
+import TeamReveal from '../components/TeamReveal';
 
 const colorNames: any = {
   red: 'אדומים',
@@ -38,6 +39,7 @@ const matchEndAt = (match: Match) => {
 
 export default function MatchPage() {
   const {id} = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {user, profile} = useAuth();
   const {data: g} = useGroup();
   const canEditTeams = canManage(g, 'edit_teams');
@@ -56,6 +58,7 @@ export default function MatchPage() {
   const [guestLinkUsers, setGuestLinkUsers] = useState<Record<string, string>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [matchTitle, setMatchTitle] = useState('');
+  const [teamRevealOpen, setTeamRevealOpen] = useState(false);
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -120,6 +123,9 @@ export default function MatchPage() {
       };
     },
   });
+  useEffect(() => {
+    if (searchParams.get('reveal') === 'teams' && q.data?.teams.length) setTeamRevealOpen(true);
+  }, [q.data?.teams.length, searchParams]);
   useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
   const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
   const members = useQuery({
@@ -228,6 +234,11 @@ export default function MatchPage() {
     onSuccess: async (action) => {
       toast.success({close: 'ההרשמה נסגרה', open: 'ההרשמה נפתחה מחדש', reopenPublished: 'החלוקה בוטלה וההרשמה נפתחה מחדש', generate: 'הקבוצות נוצרו ופורסמו', complete: 'המשחק הסתיים וננעל'}[action]);
       await refresh();
+      if (action === 'generate') {
+        const next = new URLSearchParams(searchParams);
+        next.set('reveal', 'teams');
+        setSearchParams(next, {replace: true});
+      }
       qc.invalidateQueries({queryKey: ['admin-matches']});
       qc.invalidateQueries({queryKey: ['v25-home']});
     },
@@ -401,6 +412,31 @@ export default function MatchPage() {
   const balance = calcBalance(teams),
     attendedCount = confirmed.filter((r) => r.attended).length + guests.filter((guest) => guest.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
+  const openTeamReveal = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set('reveal', 'teams');
+    setSearchParams(next, {replace: true});
+    setTeamRevealOpen(true);
+  };
+  const closeTeamReveal = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('reveal');
+    setSearchParams(next, {replace: true});
+    setTeamRevealOpen(false);
+  };
+  const shareTeamReveal = async () => {
+    const url = new URL(`/matches/${match.id}`, window.location.origin);
+    url.searchParams.set('group', match.group_id);
+    url.searchParams.set('reveal', 'teams');
+    const text = `⚽ הקבוצות של ${match.title} מוכנות!\nפותחים את הקישור ומגלים את ההרכבים אחד־אחד.`;
+    try {
+      if (navigator.share) await navigator.share({title: `חשיפת הקבוצות · ${match.title}`, text, url: url.toString()});
+      else {
+        await navigator.clipboard.writeText(`${text}\n${url.toString()}`);
+        toast.success('הקישור לחשיפת הקבוצות הועתק');
+      }
+    } catch {}
+  };
   const attendanceIsEditable = canManageAttendance && !match.ratings_open && !['completed', 'cancelled'].includes(match.status);
   const teamEditingIsOpen = match.status === 'teams_published' && !match.ratings_open && !matchStarted;
   const canEditPublishedTeams = canEditTeams && teamEditingIsOpen;
@@ -645,10 +681,11 @@ export default function MatchPage() {
               <p>החלוקה פורסמה</p>
               <h2>הקבוצות למשחק</h2>
             </div>
-            <Badge>
-              <ShieldCheck size={15} />
-              איזון {balance}%
-            </Badge>
+            <div className="teams-heading-actions">
+              <Badge><ShieldCheck size={15} />איזון {balance}%</Badge>
+              <Button variant="secondary" onClick={shareTeamReveal}><Share2 size={16}/>שליחת קישור</Button>
+              <Button onClick={openTeamReveal}><Eye size={16}/>חשיפת הקבוצות</Button>
+            </div>
           </div>
           {(canEditPublishedTeams || canRegenerateTeams) && (
             <div className="team-editor-toolbar">
@@ -719,6 +756,7 @@ export default function MatchPage() {
         </section>
       )}
       <GoalCenter match={match} registrations={regs} />
+      <TeamReveal match={match} teams={teams} balance={balance} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
     </div>
   );
 }

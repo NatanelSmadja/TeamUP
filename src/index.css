@@ -6985,6 +6985,697 @@ body {
 .team-card:nth-child(2) { animation-delay:70ms }
 .team-card:nth-child(3) { animation-delay:140ms }
 .team-card:nth-child(4) { animation-delay:210ms }
+
+/* Dramatic team reveal — isolated from the editable team board. */
+.teams-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px
+}
+
+.teams-heading-actions .tap {
+    padding: 9px 12px;
+    font-size: 12px
+}
+
+.team-reveal-layer {
+    position: fixed;
+    z-index: 2500;
+    inset: 0;
+    display: grid;
+    padding: 18px;
+    place-items: center;
+    background: rgba(2, 7, 14, .86);
+    backdrop-filter: blur(12px)
+}
+
+.team-reveal-shell {
+    position: relative;
+    width: min(1120px, 100%);
+    height: min(820px, calc(100dvh - 36px));
+    overflow: hidden;
+    border: 1px solid #21324b;
+    border-radius: 28px;
+    color: #fff;
+    background: radial-gradient(circle at 50% 0, #132746 0, transparent 38%), linear-gradient(155deg, #0e192b, #050b15 84%);
+    box-shadow: 0 35px 120px rgba(0, 0, 0, .68);
+    animation: team-reveal-shell-in .38s cubic-bezier(.2, .8, .2, 1) both
+}
+
+.team-reveal-shell:before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    content: "";
+    background: linear-gradient(90deg, transparent 49.9%, rgba(255, 255, 255, .025) 50%, transparent 50.1%), linear-gradient(0deg, transparent 49.9%, rgba(255, 255, 255, .02) 50%, transparent 50.1%);
+    pointer-events: none
+}
+
+.team-reveal-topbar {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    min-height: 72px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 20px;
+    border-bottom: 1px solid rgba(117, 153, 198, .15);
+    background: rgba(7, 15, 27, .66);
+    backdrop-filter: blur(14px)
+}
+
+.team-reveal-brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px
+}
+
+.team-reveal-brand img {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 12px
+}
+
+.team-reveal-brand span,
+.team-reveal-brand small,
+.team-reveal-brand strong {
+    display: block;
+    min-width: 0
+}
+
+.team-reveal-brand small {
+    overflow: hidden;
+    color: #78a8f1;
+    font-size: 10px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.team-reveal-brand strong {
+    margin-top: 2px;
+    font-size: 15px
+}
+
+.team-reveal-top-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 7px
+}
+
+.team-reveal-top-actions button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 11px;
+    border: 1px solid #2b3f5d;
+    border-radius: 11px;
+    color: #b6c6da;
+    background: #111e31;
+    font-size: 11px;
+    font-weight: 800
+}
+
+.team-reveal-top-actions button:hover {
+    color: #fff;
+    background: #1a2b43
+}
+
+.team-reveal-top-actions button:last-child {
+    width: 38px;
+    padding: 0
+}
+
+.team-reveal-progress {
+    position: relative;
+    z-index: 6;
+    height: 3px;
+    background: #101c2e
+}
+
+.team-reveal-progress i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #36d4ff, #4f8cff);
+    box-shadow: 0 0 16px #4f8cff;
+    transition: width .42s ease
+}
+
+.team-reveal-stage {
+    --reveal-color: #5b8cff;
+    --reveal-soft: rgba(91, 140, 255, .17);
+    position: relative;
+    z-index: 2;
+    height: calc(100% - 75px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 30px 24px;
+    text-align: center;
+    scrollbar-color: #324968 transparent
+}
+
+.team-reveal-stage > section {
+    width: min(900px, 100%);
+    min-height: 100%;
+    margin: auto
+}
+
+.team-reveal-intro,
+.team-reveal-locking,
+.team-reveal-current {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center
+}
+
+.team-reveal-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #b5c6db;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .14em
+}
+
+.team-reveal-ball {
+    display: grid;
+    width: 100px;
+    height: 100px;
+    margin: 24px auto 18px;
+    place-items: center;
+    border: 1px solid #2d4261;
+    border-radius: 31px;
+    background: linear-gradient(145deg, #1a2c49, #0b1525);
+    box-shadow: 0 24px 65px rgba(0, 0, 0, .42);
+    font-size: 47px;
+    transform: rotate(-3deg);
+    animation: team-reveal-ball-in .65s cubic-bezier(.2, .9, .2, 1) both
+}
+
+.team-reveal-intro h1,
+.team-reveal-locking h1 {
+    margin: 4px 0 9px;
+    font-size: clamp(35px, 6vw, 60px);
+    line-height: 1.08;
+    letter-spacing: -.045em
+}
+
+.team-reveal-intro p,
+.team-reveal-locking p {
+    max-width: 570px;
+    margin: 0 auto 25px;
+    color: #91a2bb;
+    line-height: 1.7
+}
+
+.team-reveal-intro .tap {
+    min-width: 205px;
+    box-shadow: 0 14px 36px rgba(49, 125, 233, .28)
+}
+
+.team-reveal-intro > small {
+    margin-top: 13px;
+    color: #617590;
+    font-size: 10px
+}
+
+.team-balance-wheel {
+    position: relative;
+    display: grid;
+    width: 116px;
+    height: 116px;
+    margin: 0 auto 24px;
+    place-items: center;
+    border: 2px solid #1d304d;
+    border-radius: 50%
+}
+
+.team-balance-wheel:before {
+    position: absolute;
+    inset: -2px;
+    border: 2px solid transparent;
+    border-top-color: #4f9cff;
+    border-radius: 50%;
+    content: "";
+    animation: team-reveal-spin 1.05s linear infinite
+}
+
+.team-balance-wheel span {
+    display: grid;
+    position: absolute;
+    inset: 13px;
+    place-items: center;
+    border-radius: 50%;
+    background: #0e1b2e;
+    font-size: 42px
+}
+
+.team-reveal-locking h1,
+.team-reveal-locking p,
+.team-reveal-locking .team-reveal-eyebrow {
+    animation: team-reveal-up .5s both
+}
+
+.team-reveal-locking h1 { animation-delay: 80ms }
+.team-reveal-locking p { animation-delay: 150ms }
+
+.team-reveal-aura {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: radial-gradient(circle at 50% 42%, var(--reveal-soft), transparent 42%);
+    pointer-events: none
+}
+
+.team-reveal-number {
+    color: var(--reveal-color);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .12em
+}
+
+.team-reveal-current > h1 {
+    margin: 5px 0 3px;
+    font-size: clamp(45px, 8vw, 76px);
+    line-height: 1;
+    letter-spacing: -.05em;
+    text-shadow: 0 9px 38px var(--reveal-soft);
+    animation: team-reveal-name-in .55s cubic-bezier(.2, .85, .2, 1) both
+}
+
+.team-reveal-current > p {
+    margin: 0 0 22px;
+    color: #91a2bb
+}
+
+.team-reveal-lineup {
+    display: grid;
+    width: min(620px, 100%);
+    grid-template-columns:1fr 1fr;
+    gap: 9px
+}
+
+.team-reveal-lineup article {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border: 1px solid #263851;
+    border-radius: 16px;
+    opacity: 0;
+    background: linear-gradient(135deg, #132139, #0c1728);
+    text-align: right;
+    transform: translateY(16px) scale(.97)
+}
+
+.team-reveal-lineup article:first-child:nth-last-child(odd) {
+    grid-column: 1/-1;
+    width: calc(50% - 5px);
+    justify-self: center
+}
+
+.team-reveal-lineup article.is-visible {
+    animation: team-reveal-player-in .42s cubic-bezier(.2, .85, .2, 1) forwards
+}
+
+.team-reveal-avatar {
+    display: grid;
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--reveal-color) 40%, transparent);
+    border-radius: 13px;
+    color: var(--reveal-color);
+    background: var(--reveal-soft);
+    font-weight: 900
+}
+
+.team-reveal-lineup article div {
+    min-width: 0
+}
+
+.team-reveal-lineup strong,
+.team-reveal-lineup small {
+    display: block
+}
+
+.team-reveal-lineup strong {
+    overflow: hidden;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.team-reveal-lineup small {
+    margin-top: 3px;
+    color: #8294ad;
+    font-size: 10px
+}
+
+.team-reveal-lineup article > b {
+    margin-right: auto;
+    color: #5b6f8b;
+    font-size: 15px
+}
+
+.team-reveal-dots {
+    display: flex;
+    direction: ltr;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 18px
+}
+
+.team-reveal-dots i {
+    width: 21px;
+    height: 4px;
+    border-radius: 999px;
+    background: #263650;
+    transition: width .25s ease, background .25s ease
+}
+
+.team-reveal-dots i.done { background: #57708f }
+.team-reveal-dots i.current { width: 40px; background: var(--reveal-color); box-shadow: 0 0 13px var(--reveal-color) }
+
+.team-reveal-final {
+    padding: 3px 0 16px
+}
+
+.team-reveal-final-head {
+    animation: team-reveal-up .55s both
+}
+
+.team-reveal-final-head > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #61dfbb;
+    font-size: 11px;
+    font-weight: 900
+}
+
+.team-reveal-final-head h1 {
+    margin: 4px 0 5px;
+    font-size: clamp(34px, 5vw, 54px);
+    letter-spacing: -.04em
+}
+
+.team-reveal-final-head p {
+    margin: 0 0 22px;
+    color: #91a2bb
+}
+
+.team-reveal-grid {
+    display: grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap: 11px;
+    text-align: right
+}
+
+.team-reveal-grid > article {
+    --team-color: #5b8cff;
+    position: relative;
+    overflow: hidden;
+    padding: 16px;
+    border: 1px solid #263851;
+    border-radius: 19px;
+    opacity: 0;
+    background: linear-gradient(155deg, #14233a, #0a1423);
+    transform: translateY(20px);
+    animation: team-reveal-up .48s forwards
+}
+
+.team-reveal-grid > article:nth-child(2) { animation-delay: 100ms }
+.team-reveal-grid > article:nth-child(3) { animation-delay: 200ms }
+.team-reveal-grid > article:nth-child(4) { animation-delay: 300ms }
+
+.team-reveal-grid > article:before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    content: "";
+    background: var(--team-color)
+}
+
+.team-reveal-grid article header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 11px
+}
+
+.team-reveal-grid h2 {
+    margin: 0;
+    font-size: 18px
+}
+
+.team-reveal-grid article > div {
+    display: grid
+}
+
+.team-reveal-grid article > div > span {
+    display: grid;
+    min-height: 41px;
+    grid-template-columns:28px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 7px;
+    border-top: 1px solid #1d2c42;
+    font-size: 12px
+}
+
+.team-reveal-grid article > div > span:first-child { border-top: 0 }
+
+.team-reveal-grid article i {
+    display: grid;
+    width: 27px;
+    height: 27px;
+    place-items: center;
+    border-radius: 9px;
+    color: var(--team-color);
+    background: color-mix(in srgb, var(--team-color) 15%, transparent);
+    font-style: normal;
+    font-weight: 900
+}
+
+.team-reveal-grid article strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.team-reveal-grid article small {
+    color: #e9c36a;
+    font-size: 9px
+}
+
+.team-reveal-grid article b {
+    color: #5e718c
+}
+
+.team-reveal-final-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 21px
+}
+
+.team-reveal-final-actions .tap {
+    padding: 11px 14px;
+    font-size: 12px
+}
+
+@keyframes team-reveal-shell-in {
+    from { opacity: 0; transform: scale(.97) translateY(12px) }
+    to { opacity: 1; transform: none }
+}
+
+@keyframes team-reveal-ball-in {
+    from { opacity: 0; transform: scale(.55) rotate(-18deg) }
+    to { opacity: 1; transform: rotate(-3deg) }
+}
+
+@keyframes team-reveal-spin { to { transform: rotate(360deg) } }
+
+@keyframes team-reveal-up {
+    from { opacity: 0; transform: translateY(18px) }
+    to { opacity: 1; transform: none }
+}
+
+@keyframes team-reveal-name-in {
+    from { opacity: 0; transform: scale(.84); letter-spacing: .08em }
+    to { opacity: 1; transform: none; letter-spacing: -.05em }
+}
+
+@keyframes team-reveal-player-in { to { opacity: 1; transform: none } }
+
+@media (max-width: 720px) {
+    .teams-heading {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 11px
+    }
+
+    .teams-heading-actions {
+        display: grid;
+        grid-template-columns:1fr 1fr
+    }
+
+    .teams-heading-actions .badge {
+        grid-column: 1/-1;
+        justify-self: start
+    }
+
+    .teams-heading-actions .tap {
+        width: 100%;
+        padding-inline: 8px;
+        font-size: 11px
+    }
+
+    .team-reveal-layer {
+        padding: 0;
+        background: #050b15
+    }
+
+    .team-reveal-shell {
+        width: 100%;
+        height: 100dvh;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none
+    }
+
+    .team-reveal-topbar {
+        min-height: 65px;
+        padding: max(10px, env(safe-area-inset-top)) 13px 10px
+    }
+
+    .team-reveal-brand img {
+        width: 35px;
+        height: 35px;
+        flex-basis: 35px
+    }
+
+    .team-reveal-brand strong { font-size: 13px }
+    .team-reveal-top-actions button span { display: none }
+    .team-reveal-top-actions button { width: 38px; padding: 0 }
+
+    .team-reveal-stage {
+        height: calc(100% - 68px);
+        padding: 22px 13px calc(24px + env(safe-area-inset-bottom))
+    }
+
+    .team-reveal-stage > section { min-height: calc(100dvh - 120px) }
+
+    .team-reveal-intro h1,
+    .team-reveal-locking h1 {
+        font-size: clamp(34px, 10vw, 48px)
+    }
+
+    .team-reveal-intro p,
+    .team-reveal-locking p {
+        font-size: 14px
+    }
+
+    .team-reveal-current {
+        justify-content: flex-start;
+        padding-top: 13px
+    }
+
+    .team-reveal-current > h1 {
+        font-size: clamp(46px, 14vw, 65px)
+    }
+
+    .team-reveal-current > p { margin-bottom: 16px }
+
+    .team-reveal-lineup {
+        grid-template-columns:1fr;
+        gap: 7px
+    }
+
+    .team-reveal-lineup article,
+    .team-reveal-lineup article:first-child:nth-last-child(odd) {
+        width: 100%;
+        min-height: 57px;
+        grid-column: auto;
+        padding: 7px 10px
+    }
+
+    .team-reveal-avatar {
+        width: 39px;
+        height: 39px;
+        flex-basis: 39px
+    }
+
+    .team-reveal-dots { margin-top: 13px }
+
+    .team-reveal-final {
+        min-height: auto !important;
+        padding-top: 4px
+    }
+
+    .team-reveal-final-head h1 { font-size: 35px }
+    .team-reveal-final-head p { margin-bottom: 14px; font-size: 13px }
+
+    .team-reveal-grid {
+        width: min(470px, 100%);
+        grid-template-columns:1fr;
+        margin: auto;
+        gap: 9px
+    }
+
+    .team-reveal-grid > article {
+        padding: 13px
+    }
+
+    .team-reveal-grid article > div > span { min-height: 35px }
+
+    .team-reveal-final-actions {
+        display: grid;
+        grid-template-columns:1fr 1fr;
+        margin-top: 14px
+    }
+
+    .team-reveal-final-actions .tap:first-child { grid-column: 1/-1 }
+}
+
+@media (max-width: 390px), (max-height: 680px) and (max-width: 720px) {
+    .team-reveal-current > h1 { font-size: 43px }
+    .team-reveal-current > p { margin-bottom: 10px }
+    .team-reveal-lineup article { min-height: 51px }
+    .team-reveal-avatar { width: 35px; height: 35px; flex-basis: 35px }
+    .team-reveal-dots { margin-top: 9px }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .team-reveal-shell,
+    .team-reveal-ball,
+    .team-balance-wheel:before,
+    .team-reveal-locking h1,
+    .team-reveal-locking p,
+    .team-reveal-locking .team-reveal-eyebrow,
+    .team-reveal-current > h1,
+    .team-reveal-lineup article.is-visible,
+    .team-reveal-final-head,
+    .team-reveal-grid > article {
+        animation-duration: .01ms !important;
+        animation-delay: 0ms !important
+    }
+}
 .team-player { transition:transform var(--motion-standard) var(--motion-ease),border-color var(--motion-standard) ease,background var(--motion-standard) ease,box-shadow var(--motion-standard) ease }
 .team-player-list .team-player { animation:motion-rise 320ms var(--motion-ease) both }
 .team-player-list .team-player:nth-child(2) { animation-delay:30ms }
