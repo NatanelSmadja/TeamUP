@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle, Trash2, Unlock, Users, UserMinus, UserPlus} from 'lucide-react';
-import {Link} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import {toast} from 'sonner';
 import {Badge, Button, Card, FieldHelp, Input, Tooltip} from '../components/ui';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
@@ -51,6 +51,7 @@ const perms = [
 type Tab = 'matches' | 'ratings' | 'polls' | 'members';
 export default function AdminPage() {
   const {data: g} = useGroup();
+  const navigate = useNavigate();
   const {profile} = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>(() => {
@@ -188,12 +189,13 @@ export default function AdminPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
-  const rpc = async (name: string, args: any, success: string) => {
+  const rpc = async (name: string, args: any, success: string, onSuccess?: () => void) => {
     const {error} = await supabase.rpc(name, args);
     if (error) toast.error(error.message);
     else {
       toast.success(success);
       qc.invalidateQueries();
+      onSuccess?.();
     }
   };
   const updatePoll = async (id: string, patch: any, success: string) => {
@@ -386,7 +388,7 @@ export default function AdminPage() {
                       </Button>
                     )}
                     {m.status === 'registration_closed' && canGenerateTeams && (
-                      <Button variant="secondary" onClick={() => rpc('generate_balanced_teams', {p_match_id: m.id}, 'הקבוצות נוצרו')}>
+                      <Button variant="secondary" onClick={() => rpc('generate_balanced_teams', {p_match_id: m.id}, 'הקבוצות נוצרו', () => navigate(`/matches/${m.id}?group=${m.group_id}&reveal=teams`))}>
                         <Shuffle size={17} />
                         ערבוב
                       </Button>

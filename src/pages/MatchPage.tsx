@@ -59,6 +59,18 @@ export default function MatchPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [matchTitle, setMatchTitle] = useState('');
   const [teamRevealOpen, setTeamRevealOpen] = useState(false);
+  const openTeamReveal = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set('reveal', 'teams');
+    setSearchParams(next, {replace: true});
+    setTeamRevealOpen(true);
+  };
+  const closeTeamReveal = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('reveal');
+    setSearchParams(next, {replace: true});
+    setTeamRevealOpen(false);
+  };
   const key = ['match', id] as const;
   const q = useQuery({
     queryKey: key,
@@ -234,11 +246,7 @@ export default function MatchPage() {
     onSuccess: async (action) => {
       toast.success({close: 'ההרשמה נסגרה', open: 'ההרשמה נפתחה מחדש', reopenPublished: 'החלוקה בוטלה וההרשמה נפתחה מחדש', generate: 'הקבוצות נוצרו ופורסמו', complete: 'המשחק הסתיים וננעל'}[action]);
       await refresh();
-      if (action === 'generate') {
-        const next = new URLSearchParams(searchParams);
-        next.set('reveal', 'teams');
-        setSearchParams(next, {replace: true});
-      }
+      if (action === 'generate') openTeamReveal();
       qc.invalidateQueries({queryKey: ['admin-matches']});
       qc.invalidateQueries({queryKey: ['v25-home']});
     },
@@ -310,7 +318,8 @@ export default function MatchPage() {
     if (error) toast.error(error.message);
     else {
       toast.success('נוצרה חלוקה חדשה');
-      refresh();
+      await refresh();
+      openTeamReveal();
     }
   };
   const attendance = useMutation({
@@ -412,18 +421,6 @@ export default function MatchPage() {
   const balance = calcBalance(teams),
     attendedCount = confirmed.filter((r) => r.attended).length + guests.filter((guest) => guest.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
-  const openTeamReveal = () => {
-    const next = new URLSearchParams(searchParams);
-    next.set('reveal', 'teams');
-    setSearchParams(next, {replace: true});
-    setTeamRevealOpen(true);
-  };
-  const closeTeamReveal = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('reveal');
-    setSearchParams(next, {replace: true});
-    setTeamRevealOpen(false);
-  };
   const shareTeamReveal = async () => {
     const url = new URL(`/matches/${match.id}`, window.location.origin);
     url.searchParams.set('group', match.group_id);

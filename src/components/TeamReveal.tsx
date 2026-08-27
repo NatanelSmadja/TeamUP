@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Eye, FastForward, RefreshCcw, Share2, ShieldCheck, Sparkles, X} from 'lucide-react';
 import type {Match} from '../types';
 import {positionLabel} from '../lib/utils';
@@ -104,7 +105,7 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
 
   if (!open || !orderedTeams.length) return null;
 
-  return <div className="team-reveal-layer" role="dialog" aria-modal="true" aria-label="חשיפת הקבוצות">
+  return createPortal(<div className="team-reveal-layer" role="dialog" aria-modal="true" aria-label="חשיפת הקבוצות">
     <div className="team-reveal-shell">
       <header className="team-reveal-topbar">
         <div className="team-reveal-brand"><img src="/brand/teamup-logo-128.png" alt=""/><span><small>{match.title}</small><strong>הקבוצות מוכנות</strong></span></div>
@@ -170,5 +171,5 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
         </section>}
       </main>
     </div>
-  </div>;
+  </div>, document.body);
 }
