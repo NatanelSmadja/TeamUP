@@ -14,7 +14,11 @@
     --primary: #4f8cff;
     --primary-2: #2e6fe8;
     --accent: #19c6a3;
-    --danger: #e25d6f
+    --danger: #e25d6f;
+    --motion-fast: 150ms;
+    --motion-standard: 230ms;
+    --motion-celebrate: 460ms;
+    --motion-ease: cubic-bezier(.2, .75, .25, 1)
 }
 
 * {
@@ -6857,4 +6861,172 @@ body {
     .home-chart-bars > a { grid-template-columns:16px 31px minmax(0,1fr) 42px; gap:7px }
     .home-chart-bars .player-avatar { width:31px; height:31px }
     .home-standouts { grid-template-columns:1fr }
+}
+
+/* TEAMUP motion system — short, purposeful and interaction-safe */
+@keyframes motion-page-in {
+    from { opacity:0; transform:translateY(8px) }
+    to { opacity:1; transform:none }
+}
+
+@keyframes motion-rise {
+    from { opacity:0; transform:translateY(12px) scale(.985) }
+    to { opacity:1; transform:none }
+}
+
+@keyframes motion-pop {
+    0% { opacity:0; transform:scale(.86) }
+    68% { opacity:1; transform:scale(1.045) }
+    100% { opacity:1; transform:scale(1) }
+}
+
+@keyframes motion-goal-in {
+    0% { opacity:0; transform:translateY(9px) scale(.96); border-color:rgba(54,211,173,.55) }
+    65% { opacity:1; transform:translateY(-2px) scale(1.012); border-color:rgba(54,211,173,.3) }
+    100% { transform:none }
+}
+
+@keyframes motion-score-burst {
+    0% { transform:scale(.7); box-shadow:0 0 0 0 rgba(54,211,173,.35) }
+    58% { transform:scale(1.14); box-shadow:0 0 0 9px rgba(54,211,173,0) }
+    100% { transform:scale(1); box-shadow:none }
+}
+
+@keyframes motion-bar-grow {
+    from { transform:scaleX(0) }
+    to { transform:scaleX(1) }
+}
+
+@keyframes motion-bar-grow-y {
+    from { transform:scaleY(0) }
+    to { transform:scaleY(1) }
+}
+
+@keyframes motion-modal-in {
+    from { opacity:0; transform:translateY(14px) scale(.97) }
+    to { opacity:1; transform:none }
+}
+
+@keyframes motion-backdrop-in {
+    from { opacity:0; backdrop-filter:blur(0) }
+    to { opacity:1 }
+}
+
+@keyframes motion-team-deal {
+    from { opacity:0; transform:translateY(16px) rotate(.35deg) }
+    to { opacity:1; transform:none }
+}
+
+@keyframes motion-achievement {
+    0% { opacity:0; transform:translateY(10px) scale(.97) }
+    72% { opacity:1; transform:translateY(-2px) scale(1.01) }
+    100% { transform:none }
+}
+
+@keyframes motion-shine {
+    from { transform:translateX(150%) skewX(-20deg) }
+    to { transform:translateX(-230%) skewX(-20deg) }
+}
+
+.page-wrap > * { animation:motion-page-in var(--motion-standard) var(--motion-ease) both }
+
+.btn-primary,.btn-secondary,.btn-danger,.btn-ghost,.icon-button,.mobile-link,.side-link {
+    transition:transform var(--motion-fast) var(--motion-ease),border-color var(--motion-standard) ease,background-color var(--motion-standard) ease,color var(--motion-standard) ease,filter var(--motion-standard) ease
+}
+
+.btn-primary:active,.btn-secondary:active,.btn-danger:active,.btn-ghost:active,.icon-button:active { transform:scale(.965) }
+.btn-primary > svg,.btn-secondary > svg,.btn-danger > svg,.btn-ghost > svg { transition:transform var(--motion-standard) var(--motion-ease) }
+
+@media (hover:hover) {
+    .btn-primary:hover > svg,.btn-secondary:hover > svg { transform:translateX(-2px) }
+    .card.tap:hover { transform:translateY(-2px); border-color:rgba(102,145,194,.34) }
+}
+
+.member-modal-layer,.system-users-modal-layer,.mobile-sheet-layer { animation:motion-backdrop-in var(--motion-standard) ease both }
+.member-management-modal,.system-users-modal { animation:motion-modal-in var(--motion-standard) var(--motion-ease) both }
+.mobile-sheet-backdrop { animation:motion-backdrop-in var(--motion-standard) ease both }
+.mobile-more-sheet { animation:sheetUp var(--motion-standard) var(--motion-ease) both }
+.mobile-group-menu { transform-origin:top right; animation:motion-modal-in var(--motion-standard) var(--motion-ease) both }
+.notification-popover { transform-origin:top left; animation:motion-modal-in var(--motion-standard) var(--motion-ease) both }
+.notification-item { animation:motion-rise var(--motion-standard) var(--motion-ease) both }
+.notification-item:nth-child(2) { animation-delay:35ms }
+.notification-item:nth-child(3) { animation-delay:70ms }
+.notification-item:nth-child(4) { animation-delay:105ms }
+
+.home-command > .home-inbox,.home-command > .home-focus-grid,.home-command > .home-team-insights,.home-command > .home-secondary-grid,.home-command > .home-manager-overview { animation:motion-rise var(--motion-celebrate) var(--motion-ease) both }
+.home-command > .home-focus-grid { animation-delay:45ms }
+.home-command > .home-team-insights { animation-delay:90ms }
+.home-command > .home-secondary-grid { animation-delay:135ms }
+.home-command > .home-manager-overview { animation-delay:180ms }
+.home-focus-grid > *,.home-secondary-grid > *,.home-standouts > * { animation:motion-rise var(--motion-celebrate) var(--motion-ease) both }
+.home-focus-grid > :nth-child(2),.home-secondary-grid > :nth-child(2),.home-standouts > :nth-child(2) { animation-delay:60ms }
+.home-secondary-grid > :nth-child(3) { animation-delay:120ms }
+.home-personal-stats > a { transition:transform var(--motion-standard) var(--motion-ease),border-color var(--motion-standard) ease,background var(--motion-standard) ease }
+.home-personal-stats > a:hover { transform:translateY(-3px); border-color:rgba(54,211,173,.3) }
+.home-chart-player em { transform-origin:right center; animation:motion-bar-grow 620ms var(--motion-ease) both }
+.home-chart-bars > a:nth-child(2) em { animation-delay:55ms }
+.home-chart-bars > a:nth-child(3) em { animation-delay:110ms }
+.home-chart-bars > a:nth-child(4) em { animation-delay:165ms }
+.home-chart-bars > a:nth-child(5) em { animation-delay:220ms }
+.home-registration i,.match-capacity-meter i,.meter i,.poll-mini b { transform-origin:right center; animation:motion-bar-grow 560ms var(--motion-ease) both }
+.home-live-dot { animation:pulse 1.8s ease-in-out infinite }
+
+.match-registration-panel { transition:background var(--motion-celebrate) ease,border-color var(--motion-celebrate) ease }
+.match-registration-panel.is-confirmed .registration-state-icon { animation:motion-pop var(--motion-celebrate) var(--motion-ease) both }
+.match-registration-panel.is-waitlisted .registration-state-icon { animation:motion-pop var(--motion-celebrate) var(--motion-ease) both }
+.flow-step.done > span { animation:motion-pop var(--motion-celebrate) var(--motion-ease) both }
+.flow-step:nth-child(2).done > span { animation-delay:35ms }
+.flow-step:nth-child(3).done > span { animation-delay:70ms }
+.flow-step:nth-child(4).done > span { animation-delay:105ms }
+.flow-step:nth-child(5).done > span { animation-delay:140ms }
+.flow-step:nth-child(6).done > span { animation-delay:175ms }
+
+.team-card { animation:motion-team-deal var(--motion-celebrate) var(--motion-ease) both }
+.team-card:nth-child(2) { animation-delay:70ms }
+.team-card:nth-child(3) { animation-delay:140ms }
+.team-card:nth-child(4) { animation-delay:210ms }
+.team-player { transition:transform var(--motion-standard) var(--motion-ease),border-color var(--motion-standard) ease,background var(--motion-standard) ease,box-shadow var(--motion-standard) ease }
+.team-player-list .team-player { animation:motion-rise 320ms var(--motion-ease) both }
+.team-player-list .team-player:nth-child(2) { animation-delay:30ms }
+.team-player-list .team-player:nth-child(3) { animation-delay:60ms }
+.team-player-list .team-player:nth-child(4) { animation-delay:90ms }
+.team-player-list .team-player:nth-child(5) { animation-delay:120ms }
+.team-player-list .team-player:nth-child(6) { animation-delay:150ms }
+.team-player.swap-selected { transform:translateY(-2px) scale(1.015); box-shadow:0 0 0 3px rgba(79,140,255,.15) }
+
+.goal-score-row { animation:motion-goal-in var(--motion-celebrate) var(--motion-ease) both }
+.goal-score-row > strong:last-child { animation:motion-score-burst var(--motion-celebrate) var(--motion-ease) both }
+.goal-total-badge { animation:motion-pop 340ms var(--motion-ease) both }
+.goal-leader { animation:motion-rise var(--motion-celebrate) var(--motion-ease) both }
+.goal-leader > svg { animation:motion-pop var(--motion-celebrate) var(--motion-ease) both }
+.goal-review-row,.goal-correction-row { animation:motion-rise 300ms var(--motion-ease) both }
+.goal-report-form,.goal-notice { animation:motion-rise var(--motion-standard) var(--motion-ease) both }
+
+.rating-player-card { transition:transform var(--motion-standard) var(--motion-ease),border-color var(--motion-standard) ease,background var(--motion-standard) ease }
+.rating-player-card.rated { animation:motion-pop 320ms var(--motion-ease) both }
+.score-picker button { transition:transform var(--motion-fast) var(--motion-ease),color var(--motion-standard) ease,background var(--motion-standard) ease,border-color var(--motion-standard) ease }
+.score-picker button:active { transform:scale(.9) }
+.score-picker button.active svg { animation:motion-pop 300ms var(--motion-ease) both }
+.rating-chart i { transform-origin:center bottom; animation:motion-bar-grow-y 520ms var(--motion-ease) both }
+.rating-chart > div:nth-child(2) i { animation-delay:35ms }
+.rating-chart > div:nth-child(3) i { animation-delay:70ms }
+.rating-chart > div:nth-child(4) i { animation-delay:105ms }
+.rating-chart > div:nth-child(5) i { animation-delay:140ms }
+.rating-chart > div:nth-child(6) i { animation-delay:175ms }
+
+.achievement-card { position:relative; overflow:hidden; animation:motion-achievement var(--motion-celebrate) var(--motion-ease) both }
+.achievement-card:nth-child(2) { animation-delay:55ms }
+.achievement-card:nth-child(3) { animation-delay:110ms }
+.achievement-card:nth-child(4) { animation-delay:165ms }
+.achievement-card:nth-child(5) { animation-delay:220ms }
+.achievement-card:after { content:''; position:absolute; inset:-30% auto -30% 120%; width:34px; pointer-events:none; background:linear-gradient(90deg,transparent,rgba(255,255,255,.11),transparent); transform:skewX(-20deg); animation:motion-shine 850ms 260ms ease-out both }
+.player-of-month,.goal-award { animation:motion-achievement 520ms var(--motion-ease) both }
+.leader-row { transition:transform var(--motion-standard) var(--motion-ease),border-color var(--motion-standard) ease,background var(--motion-standard) ease }
+.leader-row:hover { transform:translateX(-3px) }
+
+details[open] > .rating-audit-rater-body,details[open] > div { animation:motion-rise var(--motion-standard) var(--motion-ease) both }
+
+@media (prefers-reduced-motion:reduce) {
+    html { scroll-behavior:auto !important }
+    *,*:before,*:after { animation-duration:.01ms !important; animation-delay:0ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important }
 }

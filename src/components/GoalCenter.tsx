@@ -79,10 +79,10 @@ export function GoalCenter({match,registrations}:{match:Match;registrations:Regi
  return <Card className="goal-center-card">
   <header className="goal-center-head">
    <div className="goal-center-title"><span><Goal size={21}/></span><div><small>MATCH SCORE</small><h2>שערים במשחק</h2><p>רק שחקן שסומן כנוכח יכול לדווח או להיבחר כמבקיע.</p></div></div>
-   <Badge>{approved.length} שערים מאושרים</Badge>
+   <Badge key={approved.length} className="goal-total-badge">{approved.length} שערים מאושרים</Badge>
   </header>
 
-  {scores.length?<div className="goal-scoreboard">{scores.map((row,index)=><div className="goal-score-row" key={row.userId}><b>{index+1}</b><div className="player-avatar sm">{row.name[0]||'ש'}</div><span>{row.name}</span><strong>{row.goals}</strong></div>)}</div>:<div className="goal-empty"><Goal size={24}/><div><strong>עדיין אין שערים</strong><span>שערים מאושרים יוצגו כאן בזמן אמת.</span></div></div>}
+  {scores.length?<div className="goal-scoreboard">{scores.map((row,index)=><div className="goal-score-row" key={`${row.userId}-${row.goals}`}><b>{index+1}</b><div className="player-avatar sm">{row.name[0]||'ש'}</div><span>{row.name}</span><strong>{row.goals}</strong></div>)}</div>:<div className="goal-empty"><Goal size={24}/><div><strong>עדיין אין שערים</strong><span>שערים מאושרים יוצגו כאן בזמן אמת.</span></div></div>}
   {leaders.length>0&&<div className="goal-leader"><Crown size={19}/><div><strong>מלך השערים של המשחק</strong><p>{leaders.map(x=>`${x.name} — ${x.goals}`).join(' · ')}</p></div></div>}
 
   {isLoading&&<div className="goal-notice">בודקים אם דיווח השערים פתוח...</div>}
