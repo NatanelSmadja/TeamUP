@@ -1348,6 +1348,12 @@ button {
 }
 
 .rating-audit-workspace { display: grid; gap: 14px }
+.match-rating-audit-section { display: grid; gap: 12px }
+.match-rating-audit-entry { display: grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 18px 20px; border-color: rgba(245, 196, 81, .22); background: linear-gradient(135deg, rgba(245, 196, 81, .08), rgba(12, 29, 49, .96) 54%, rgba(9, 22, 38, .98)) }
+.match-rating-audit-entry h2 { margin: 5px 0 2px; font-size: 20px; font-weight: 950 }
+.match-rating-audit-entry p { color: var(--muted); font-size: 12px }
+.match-rating-audit-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--gold); background: rgba(245, 196, 81, .11) }
+.match-rating-audit-entry button { display: flex; align-items: center; justify-content: center; gap: 7px }
 .rating-audit-intro { display: grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 22px; border-color: rgba(245, 196, 81, .24); background: linear-gradient(135deg, rgba(245, 196, 81, .1), rgba(15, 34, 57, .96) 48%, rgba(9, 23, 40, .98)) }
 .rating-audit-intro-icon { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 16px; color: var(--gold); background: rgba(245, 196, 81, .12) }
 .rating-audit-intro h2 { margin: 5px 0 3px; font-size: 22px; font-weight: 950 }
@@ -1397,6 +1403,8 @@ button {
 }
 
 @media (max-width: 520px) {
+    .match-rating-audit-entry { grid-template-columns:auto minmax(0, 1fr); padding: 16px }
+    .match-rating-audit-entry button { grid-column:1/-1; width: 100% }
     .rating-audit-intro { grid-template-columns: auto minmax(0, 1fr); padding: 18px }
     .rating-audit-intro > svg { display: none }
     .rating-audit-rater summary { grid-template-columns: auto minmax(0, 1fr) auto }

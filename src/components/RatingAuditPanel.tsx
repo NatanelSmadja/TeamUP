@@ -45,11 +45,12 @@ type AuditDetails = {
 
 const dateLabel = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString('he-IL', {day: 'numeric', month: 'long', year: 'numeric'});
 
-export function RatingAuditPanel({groupId}: {groupId: string}) {
-  const [selectedMatch, setSelectedMatch] = useState('');
+export function RatingAuditPanel({groupId, matchId}: {groupId: string;matchId?: string}) {
+  const [selectedMatch, setSelectedMatch] = useState(matchId || '');
   const matchesKey = ['rating-audit-matches', groupId] as const;
   const {data: matches = [], isLoading: matchesLoading, error: matchesError} = useQuery({
     queryKey: matchesKey,
+    enabled: !matchId,
     queryFn: async () => {
       const {data, error} = await supabase.rpc('get_group_rating_audit_matches', {p_group_id: groupId});
       if (error) throw error;
@@ -58,10 +59,14 @@ export function RatingAuditPanel({groupId}: {groupId: string}) {
   });
 
   useEffect(() => {
+    if (matchId) {
+      if (selectedMatch !== matchId) setSelectedMatch(matchId);
+      return;
+    }
     if (!matchesLoading && !matches.length && selectedMatch) setSelectedMatch('');
     else if (!selectedMatch && matches[0]) setSelectedMatch(matches[0].match_id);
     else if (selectedMatch && matches.length && !matches.some((match) => match.match_id === selectedMatch)) setSelectedMatch(matches[0].match_id);
-  }, [matches, matchesLoading, selectedMatch]);
+  }, [matchId, matches, matchesLoading, selectedMatch]);
 
   const detailsKey = ['rating-audit-details', selectedMatch] as const;
   const {data: details, isLoading: detailsLoading, error: detailsError} = useQuery({
@@ -97,29 +102,36 @@ export function RatingAuditPanel({groupId}: {groupId: string}) {
     return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, 'he'));
   }, [details]);
 
+  const summary = matchId && details ? {
+    attended_players: details.attended_count,
+    distinct_raters: new Set(details.ratings.map((rating) => rating.rater_user_id)).size,
+    rating_entries: details.ratings.length,
+    mvp_ballots: details.mvp_votes.length,
+  } : selectedSummary;
+
   return <section className="rating-audit-workspace">
     <Card className="rating-audit-intro">
       <div className="rating-audit-intro-icon"><Eye size={24}/></div>
-      <div><Badge>גישה מוגבלת</Badge><h2>ביקורת דירוגים</h2><p>מידע אישי לצורכי בקרה בלבד. רק מנהל הקבוצה או מי שקיבל הרשאת צפייה בפירוט דירוגים יכול לפתוח את האזור הזה.</p></div>
+      <div><Badge>גישה מוגבלת</Badge><h2>{matchId ? 'ביקורת דירוגי המשחק' : 'ביקורת דירוגים'}</h2><p>מידע אישי לצורכי בקרה בלבד. רק מנהל הקבוצה או מי שקיבל הרשאת צפייה בפירוט דירוגים יכול לפתוח את האזור הזה.</p></div>
       <ShieldCheck size={24}/>
     </Card>
 
-    <Card className="rating-audit-picker">
+    {!matchId && <Card className="rating-audit-picker">
       <div><span>בחירת משחק</span><strong>{selectedSummary ? `${selectedSummary.title} · ${dateLabel(selectedSummary.match_date)}` : 'אין משחקים עם דירוגים'}</strong></div>
       <Select value={selectedMatch} onChange={(event) => setSelectedMatch(event.target.value)} disabled={matchesLoading || !matches.length} aria-label="בחירת משחק לביקורת דירוגים">
         {!matches.length && <option value="">אין משחקים להצגה</option>}
         {matches.map((match) => <option key={match.match_id} value={match.match_id}>{match.title} · {dateLabel(match.match_date)}</option>)}
       </Select>
-    </Card>
+    </Card>}
 
-    {matchesError && <Card className="empty-state"><h2>לא ניתן לטעון את ביקורת הדירוגים</h2><p>{matchesError.message}</p></Card>}
-    {!matchesLoading && !matchesError && !matches.length && <Card className="empty-state"><Star size={32}/><h2>עדיין אין דירוגים לביקורת</h2><p>לאחר סיום משחק והגשת הדירוגים הם יופיעו כאן.</p></Card>}
+    {!matchId && matchesError && <Card className="empty-state"><h2>לא ניתן לטעון את ביקורת הדירוגים</h2><p>{matchesError.message}</p></Card>}
+    {!matchId && !matchesLoading && !matchesError && !matches.length && <Card className="empty-state"><Star size={32}/><h2>עדיין אין דירוגים לביקורת</h2><p>לאחר סיום משחק והגשת הדירוגים הם יופיעו כאן.</p></Card>}
 
-    {selectedSummary && <div className="rating-audit-kpis">
-      <Card><Users/><strong>{Number(selectedSummary.attended_players || 0)}</strong><span>שחקנים שנכחו</span></Card>
-      <Card><UserCheck/><strong>{Number(selectedSummary.distinct_raters || 0)}</strong><span>מדרגים שהגישו</span></Card>
-      <Card><Star/><strong>{Number(selectedSummary.rating_entries || 0)}</strong><span>דירוגים שניתנו</span></Card>
-      <Card><Crown/><strong>{Number(selectedSummary.mvp_ballots || 0)}</strong><span>הצבעות MVP</span></Card>
+    {summary && <div className="rating-audit-kpis">
+      <Card><Users/><strong>{Number(summary.attended_players || 0)}</strong><span>שחקנים שנכחו</span></Card>
+      <Card><UserCheck/><strong>{Number(summary.distinct_raters || 0)}</strong><span>מדרגים שהגישו</span></Card>
+      <Card><Star/><strong>{Number(summary.rating_entries || 0)}</strong><span>דירוגים שניתנו</span></Card>
+      <Card><Crown/><strong>{Number(summary.mvp_ballots || 0)}</strong><span>הצבעות MVP</span></Card>
     </div>}
 
     {detailsLoading && <Card className="rating-audit-loading">טוען את פירוט הדירוגים...</Card>}

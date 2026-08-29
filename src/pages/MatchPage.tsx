@@ -13,6 +13,7 @@ import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
 import TeamReveal from '../components/TeamReveal';
+import {RatingAuditPanel} from '../components/RatingAuditPanel';
 
 const colorNames: any = {
   red: 'אדומים',
@@ -59,6 +60,7 @@ export default function MatchPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [matchTitle, setMatchTitle] = useState('');
   const [teamRevealOpen, setTeamRevealOpen] = useState(false);
+  const [ratingAuditOpen, setRatingAuditOpen] = useState(false);
   const openTeamReveal = () => {
     const next = new URLSearchParams(searchParams);
     next.set('reveal', 'teams');
@@ -439,6 +441,7 @@ export default function MatchPage() {
   const canEditPublishedTeams = canEditTeams && teamEditingIsOpen;
   const canRegenerateTeams = canGenerateTeams && teamEditingIsOpen;
   const canCompleteMatch = match.created_by === user?.id || canManageResults || canOpenRatings || isSystemAdmin(profile);
+  const canViewRatingAudit = isSystemAdmin(profile) || (g?.group.id === match.group_id && canManage(g, 'view_rating_audit'));
   const showLifecycleActions =
     (match.status === 'registration_open' && canCloseRegistration) ||
     (match.status === 'registration_closed' && (canCloseRegistration || canGenerateTeams)) ||
@@ -577,6 +580,14 @@ export default function MatchPage() {
           {match.ratings_open && canOpenRatings && <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}><Lock size={16}/>סגירת דירוג</Button>}
         </div>}
       </section>
+      {canViewRatingAudit && match.status === 'completed' && <section className="match-rating-audit-section">
+        <Card className="match-rating-audit-entry">
+          <div className="match-rating-audit-icon"><Eye size={22}/></div>
+          <div><Badge>למורשים בלבד</Badge><h2>דירוגי המשחק</h2><p>צפייה בזמן אמת במדרגים, בציונים ובהצבעות ה־MVP של המשחק הזה.</p></div>
+          <Button variant={ratingAuditOpen ? 'ghost' : 'secondary'} onClick={() => setRatingAuditOpen((open) => !open)}><ShieldCheck size={17}/>{ratingAuditOpen ? 'סגירת הפירוט' : 'צפייה בפירוט'}</Button>
+        </Card>
+        {ratingAuditOpen && <RatingAuditPanel groupId={match.group_id} matchId={match.id}/>}
+      </section>}
       {canManageRegistrations && (
         <Card className="registration-manager-card">
           <div className="section-title">
