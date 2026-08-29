@@ -462,36 +462,46 @@ export default function MatchPage() {
       toast.error('לא הצלחנו לטעון את השערים לסיכום');
       return;
     }
-    const teamScores = new Map<string, {name: string;goals: number}>();
-    teams.forEach((team: any) => teamScores.set(team.id, {name: colorNames[team.color_key] || team.name, goals: 0}));
+    const teamScores = new Map<string, {name: string;colorKey?: string;goals: number}>();
+    teams.forEach((team: any) => teamScores.set(team.id, {name: colorNames[team.color_key] || team.name, colorKey: team.color_key, goals: 0}));
     const scorers = new Map<string, {name: string;goals: number}>();
     (goals || []).forEach((goal: any) => {
       if (goal.team_id) {
         const team = teamScores.get(goal.team_id);
         if (team) team.goals += 1;
-        else teamScores.set(goal.team_id, {name: colorNames[goal.team?.color_key] || goal.team?.name || 'קבוצה', goals: 1});
+        else teamScores.set(goal.team_id, {name: colorNames[goal.team?.color_key] || goal.team?.name || 'קבוצה', colorKey: goal.team?.color_key, goals: 1});
       }
       const scorer = scorers.get(goal.scorer_user_id);
       if (scorer) scorer.goals += 1;
       else scorers.set(goal.scorer_user_id, {name: fullName(goal.scorer as any), goals: 1});
     });
+    const sortedScorers = [...scorers.values()].sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name, 'he'));
+    const topGoalCount = sortedScorers[0]?.goals || 0;
+    const topScorers = sortedScorers.filter((scorer) => scorer.goals === topGoalCount);
+    const scorerTitle = topScorers.length > 1 ? 'מלכי השערים' : 'מלך השערים';
+    const topScorerLine = topScorers.length
+      ? `👑 *${scorerTitle}:* ${topScorers.map((scorer) => scorer.name).join(', ')} · ${topGoalCount === 1 ? 'שער אחד' : `${topGoalCount} שערים`}`
+      : null;
+    const teamIcons: Record<string, string> = {red: '🔴', blue: '🔵', yellow: '🟡', green: '🟢'};
     const attendanceLine = `👥 נוכחות: ${attendedCount} מתוך ${participantCount}${guests.length ? ` · כולל ${guests.length} ${guests.length === 1 ? 'אורח' : 'אורחים'}` : ''}`;
     const completedLines: Array<string | null> = [
-      `⚽ *${match.title}*`,
+      '⚽ *סיכום משחק*',
+      `*${match.title}*`,
       `📅 ${date} · ${match.start_time.slice(0, 5)}`,
       match.location ? `📍 ${match.location}` : null,
       '',
       '*תוצאת המשחק*',
-      ...([...teamScores.values()].map((team) => `• ${team.name}: ${team.goals}`)),
+      ...([...teamScores.values()].map((team) => `${teamIcons[team.colorKey || ''] || '▪️'} ${team.name}: *${team.goals}*`)),
       '',
+      ...(topScorerLine ? [topScorerLine, ''] : []),
       '*כובשים*',
-      ...(scorers.size
-        ? [...scorers.values()].sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name, 'he')).map((scorer) => `• ${scorer.name} — ${scorer.goals === 1 ? 'שער אחד' : `${scorer.goals} שערים`}`)
+      ...(sortedScorers.length
+        ? sortedScorers.map((scorer) => `• ${scorer.name}: ${scorer.goals === 1 ? 'שער אחד' : `${scorer.goals} שערים`}`)
         : ['• לא דווחו שערים']),
       '',
       attendanceLine,
       '',
-      'נשלח מ־TEAMUP',
+      '_נשלח מ־TEAMUP_',
     ];
     const upcomingLines: Array<string | null> = [
       `⚽ *${match.title}*`,
