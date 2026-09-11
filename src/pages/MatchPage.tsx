@@ -14,6 +14,7 @@ import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
 import TeamReveal from '../components/TeamReveal';
 import {RatingAuditPanel} from '../components/RatingAuditPanel';
+import {MatchRoundCenter} from '../components/MatchRoundCenter';
 
 const colorNames: any = {
   red: 'אדומים',
@@ -140,7 +141,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (searchParams.get('reveal') === 'teams' && q.data?.teams.length) setTeamRevealOpen(true);
   }, [q.data?.teams.length, searchParams]);
-  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events'], [key, ['v2-home']], !!id);
+  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events', 'match_team_win_events', 'match_clean_sheet_events'], [key, ['v2-home']], !!id);
   const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
   const members = useQuery({
     queryKey: ['match-registration-members', q.data?.match.group_id],
@@ -457,23 +458,31 @@ export default function MatchPage() {
   ] as const;
   const shareSummary = async () => {
     const date = new Date(`${match.match_date}T12:00:00`).toLocaleDateString('he-IL', {weekday: 'long', day: 'numeric', month: 'long'});
-    const {data: goals, error} = await supabase.from('goal_events').select('scorer_user_id,team_id,scorer:profiles!goal_events_scorer_user_id_fkey(first_name,last_name),team:teams(name,color_key)').eq('match_id', match.id).eq('status', 'approved');
-    if (error) {
-      toast.error('לא הצלחנו לטעון את השערים לסיכום');
+    const [{data: goals, error: goalsError}, {data: wins, error: winsError}, {data: cleanSheets, error: cleanSheetsError}] = await Promise.all([
+      supabase.from('goal_events').select('scorer_user_id,team_id,scorer:profiles!goal_events_scorer_user_id_fkey(first_name,last_name),team:teams(name,color_key)').eq('match_id', match.id).eq('status', 'approved'),
+      supabase.from('match_team_win_events').select('team_id').eq('match_id', match.id).is('cancelled_at', null),
+      supabase.from('match_clean_sheet_events').select('goalkeeper_user_id,goalkeeper_guest_id,goalkeeper:profiles!match_clean_sheet_events_goalkeeper_user_id_fkey(first_name,last_name),guest:match_guests!match_clean_sheet_events_goalkeeper_guest_id_fkey(display_name)').eq('match_id', match.id).is('cancelled_at', null),
+    ]);
+    if (goalsError || winsError || cleanSheetsError) {
+      toast.error('לא הצלחנו לטעון את תוצאות המשחק לסיכום');
       return;
     }
-    const teamScores = new Map<string, {name: string;colorKey?: string;goals: number}>();
-    teams.forEach((team: any) => teamScores.set(team.id, {name: colorNames[team.color_key] || team.name, colorKey: team.color_key, goals: 0}));
+    const teamScores = new Map<string, {name: string;colorKey?: string;goals: number;wins: number}>();
+    teams.forEach((team: any) => teamScores.set(team.id, {name: colorNames[team.color_key] || team.name, colorKey: team.color_key, goals: 0, wins: 0}));
     const scorers = new Map<string, {name: string;goals: number}>();
     (goals || []).forEach((goal: any) => {
       if (goal.team_id) {
         const team = teamScores.get(goal.team_id);
         if (team) team.goals += 1;
-        else teamScores.set(goal.team_id, {name: colorNames[goal.team?.color_key] || goal.team?.name || 'קבוצה', colorKey: goal.team?.color_key, goals: 1});
+        else teamScores.set(goal.team_id, {name: colorNames[goal.team?.color_key] || goal.team?.name || 'קבוצה', colorKey: goal.team?.color_key, goals: 1, wins: 0});
       }
       const scorer = scorers.get(goal.scorer_user_id);
       if (scorer) scorer.goals += 1;
       else scorers.set(goal.scorer_user_id, {name: fullName(goal.scorer as any), goals: 1});
+    });
+    (wins || []).forEach((win: any) => {
+      const team = teamScores.get(win.team_id);
+      if (team) team.wins += 1;
     });
     const sortedScorers = [...scorers.values()].sort((a,b) => b.goals-a.goals || a.name.localeCompare(b.name, 'he'));
     const topGoalCount = sortedScorers[0]?.goals || 0;
@@ -482,6 +491,21 @@ export default function MatchPage() {
     const topScorerLine = topScorers.length
       ? `👑 *${scorerTitle}:* ${topScorers.map((scorer) => scorer.name).join(', ')} · ${topGoalCount === 1 ? 'שער אחד' : `${topGoalCount} שערים`}`
       : null;
+    const sortedTeams = [...teamScores.values()].sort((a,b) => b.wins-a.wins || b.goals-a.goals || a.name.localeCompare(b.name, 'he'));
+    const topWinCount = sortedTeams[0]?.wins || 0;
+    const winningTeams = topWinCount ? sortedTeams.filter((team) => team.wins === topWinCount) : [];
+    const winningTeamTitle = winningTeams.length > 1 ? 'קבוצות הערב' : 'קבוצת הערב';
+    const winningTeamLine = winningTeams.length
+      ? `🏆 *${winningTeamTitle}:* ${winningTeams.map((team) => team.name).join(', ')} · ${topWinCount === 1 ? 'ניצחון אחד' : `${topWinCount} ניצחונות`}`
+      : null;
+    const cleanSheetScores = new Map<string,{name:string;count:number}>();
+    (cleanSheets || []).forEach((event: any) => {
+      const participantId = event.goalkeeper_user_id ? `user:${event.goalkeeper_user_id}` : `guest:${event.goalkeeper_guest_id}`;
+      const current = cleanSheetScores.get(participantId);
+      if (current) current.count += 1;
+      else cleanSheetScores.set(participantId, {name: event.goalkeeper_user_id ? fullName(event.goalkeeper as any) : (event.guest?.display_name || 'אורח'), count: 1});
+    });
+    const sortedCleanSheets = [...cleanSheetScores.values()].sort((a,b) => b.count-a.count || a.name.localeCompare(b.name, 'he'));
     const teamIcons: Record<string, string> = {red: '🔴', blue: '🔵', yellow: '🟡', green: '🟢'};
     const attendanceLine = `👥 נוכחות: ${attendedCount} מתוך ${participantCount}${guests.length ? ` · כולל ${guests.length} ${guests.length === 1 ? 'אורח' : 'אורחים'}` : ''}`;
     const completedLines: Array<string | null> = [
@@ -491,13 +515,15 @@ export default function MatchPage() {
       match.location ? `📍 ${match.location}` : null,
       '',
       '*תוצאת המשחק*',
-      ...([...teamScores.values()].map((team) => `${teamIcons[team.colorKey || ''] || '▪️'} ${team.name}: *${team.goals}*`)),
+      ...(sortedTeams.map((team) => `${teamIcons[team.colorKey || ''] || '▪️'} ${team.name}: *${team.wins} ${team.wins === 1 ? 'ניצחון' : 'ניצחונות'}* · ${team.goals} ${team.goals === 1 ? 'שער' : 'שערים'}`)),
       '',
+      ...(winningTeamLine ? [winningTeamLine, ''] : []),
       ...(topScorerLine ? [topScorerLine, ''] : []),
       '*כובשים*',
       ...(sortedScorers.length
         ? sortedScorers.map((scorer) => `• ${scorer.name}: ${scorer.goals === 1 ? 'שער אחד' : `${scorer.goals} שערים`}`)
         : ['• לא דווחו שערים']),
+      ...(sortedCleanSheets.length ? ['', '🧤 *שערים נקיים*', ...sortedCleanSheets.map((row) => `• ${row.name}: ${row.count === 1 ? 'שער נקי אחד' : `${row.count} שערים נקיים`}`)] : []),
       '',
       attendanceLine,
       '',
@@ -774,6 +800,7 @@ export default function MatchPage() {
         </section>
       )}
       <GoalCenter match={match} registrations={regs} />
+      <MatchRoundCenter match={match} registrations={regs} teams={teams} />
       <TeamReveal match={match} teams={teams} balance={balance} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
     </div>
   );

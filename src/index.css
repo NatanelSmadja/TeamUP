@@ -6154,6 +6154,241 @@ body {
     cursor: pointer
 }
 
+.round-center-card {
+    display: grid;
+    gap: 18px;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(19, 37, 60, .98), rgba(10, 24, 42, .98))
+}
+
+.round-center-head, .round-center-title, .round-center-title > span,
+.round-team-card > div:first-child, .round-counter-actions, .clean-sheet-row,
+.clean-sheet-section .section-title h3, .clean-sheet-controls {
+    display: flex;
+    align-items: center
+}
+
+.round-center-head {
+    justify-content: space-between;
+    gap: 16px
+}
+
+.round-center-title {
+    gap: 12px
+}
+
+.round-center-title > span {
+    justify-content: center;
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    border: 1px solid rgba(245, 196, 81, .25);
+    border-radius: 14px;
+    color: #f0ca6a;
+    background: rgba(245, 196, 81, .09)
+}
+
+.round-center-title small, .round-center-title h2, .round-center-title p,
+.round-team-section h3, .round-team-section p, .clean-sheet-section h3,
+.clean-sheet-section p, .clean-sheet-row strong, .clean-sheet-row small {
+    display: block;
+    margin: 0
+}
+
+.round-center-title small {
+    color: #69d6b9;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .16em
+}
+
+.round-center-title h2 {
+    margin-top: 2px;
+    font-size: 20px
+}
+
+.round-center-title p, .round-team-section p, .clean-sheet-section p {
+    margin-top: 3px;
+    color: #899db3;
+    font-size: 11px;
+    line-height: 1.45
+}
+
+.round-team-section, .clean-sheet-section {
+    display: grid;
+    gap: 12px
+}
+
+.round-team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px
+}
+
+.round-team-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 3px 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(112, 151, 194, .18);
+    border-radius: 15px;
+    background: rgba(9, 24, 42, .72)
+}
+
+.round-team-card.team-red { border-color: rgba(242, 93, 112, .28); background: linear-gradient(145deg, rgba(242, 93, 112, .1), rgba(9, 24, 42, .78)) }
+.round-team-card.team-blue { border-color: rgba(79, 140, 255, .3); background: linear-gradient(145deg, rgba(79, 140, 255, .11), rgba(9, 24, 42, .78)) }
+.round-team-card.team-yellow { border-color: rgba(245, 196, 81, .28); background: linear-gradient(145deg, rgba(245, 196, 81, .1), rgba(9, 24, 42, .78)) }
+.round-team-card.team-green { border-color: rgba(54, 211, 173, .28); background: linear-gradient(145deg, rgba(54, 211, 173, .1), rgba(9, 24, 42, .78)) }
+.round-team-card.is-leading { box-shadow: inset 0 0 0 1px rgba(245, 196, 81, .13), 0 10px 30px rgba(3, 11, 23, .2) }
+
+.round-team-card > div:first-child {
+    gap: 8px;
+    min-width: 0
+}
+
+.round-team-card > div:first-child strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.round-team-card > div:first-child em {
+    padding: 3px 6px;
+    border-radius: 7px;
+    color: #e9c768;
+    background: rgba(245, 196, 81, .1);
+    font-size: 8px;
+    font-style: normal;
+    font-weight: 900
+}
+
+.round-team-icon {
+    font-size: 17px
+}
+
+.round-team-card > b {
+    grid-row: span 2;
+    color: #f4f8fd;
+    font-size: 30px;
+    line-height: 1
+}
+
+.round-team-card > small {
+    color: #8297ad;
+    font-size: 10px
+}
+
+.round-counter-actions {
+    grid-column: 1 / -1;
+    gap: 7px;
+    margin-top: 10px
+}
+
+.round-counter-actions .tap:first-child {
+    width: 39px;
+    padding-inline: 0
+}
+
+.round-counter-actions .tap:last-child {
+    flex: 1
+}
+
+.clean-sheet-section {
+    padding-top: 16px;
+    border-top: 1px solid rgba(112, 151, 194, .14)
+}
+
+.clean-sheet-section .section-title h3 {
+    gap: 7px
+}
+
+.clean-sheet-section .section-title h3 svg {
+    color: #64dcc4
+}
+
+.clean-sheet-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px
+}
+
+.clean-sheet-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 10px;
+    padding: 10px 11px;
+    border: 1px solid rgba(54, 211, 173, .15);
+    border-radius: 13px;
+    background: rgba(54, 211, 173, .055)
+}
+
+.clean-sheet-row span {
+    min-width: 0
+}
+
+.clean-sheet-row strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.clean-sheet-row small {
+    margin-top: 2px;
+    color: #7f95ab;
+    font-size: 10px
+}
+
+.clean-sheet-row > b {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 10px;
+    color: #73dfc2;
+    background: rgba(54, 211, 173, .1)
+}
+
+.clean-sheet-row .tap {
+    width: 34px;
+    min-height: 32px;
+    padding: 0
+}
+
+.clean-sheet-controls {
+    gap: 8px;
+    padding: 11px;
+    border-radius: 13px;
+    background: #101f34
+}
+
+.clean-sheet-controls .form-control {
+    min-width: 0;
+    flex: 1
+}
+
+.clean-sheet-controls .tap {
+    flex: 0 0 auto;
+    white-space: nowrap
+}
+
+.round-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 62px;
+    border: 1px dashed rgba(112, 151, 194, .2);
+    border-radius: 13px;
+    color: #8297ad;
+    font-size: 12px
+}
+
+.round-empty svg {
+    color: #64dcc4
+}
+
 @media (max-width: 720px) {
     .goal-center-card {
         padding: 15px
@@ -6195,6 +6430,32 @@ body {
     }
 
     .goal-review-row .tap, .goal-correction-row .tap {
+        width: 100%
+    }
+
+    .round-center-head {
+        align-items: flex-start;
+        flex-direction: column
+    }
+
+    .round-center-title p {
+        display: none
+    }
+
+    .round-team-grid, .clean-sheet-list {
+        grid-template-columns: 1fr
+    }
+
+    .round-team-card {
+        padding: 13px
+    }
+
+    .clean-sheet-controls {
+        align-items: stretch;
+        flex-direction: column
+    }
+
+    .clean-sheet-controls .tap {
         width: 100%
     }
 }
