@@ -24,14 +24,15 @@ export default function StatsPage() {
     enabled: !!g,
     queryFn: async () => {
       const month = new Date().toISOString().slice(0, 10);
-      const [membersResult, statsResult, monthlyResult, monthlyGoalsResult, allGoalsResult] = await Promise.all([
+      const [membersResult, statsResult, monthlyResult, monthlyGoalsResult, allGoalsResult, cleanSheetsResult] = await Promise.all([
         supabase.from('group_members').select('user_id,profiles(*)').eq('group_id', g!.group.id).eq('status', 'active'),
         supabase.from('player_public_stats').select('*').eq('group_id', g!.group.id),
         supabase.rpc('get_player_of_month', {p_group_id: g!.group.id, p_month: month}),
         supabase.rpc('get_group_goal_leaderboard', {p_group_id: g!.group.id, p_month: month}),
         supabase.rpc('get_group_goal_leaderboard', {p_group_id: g!.group.id, p_month: null}),
+        supabase.rpc('get_group_clean_sheet_leaderboard', {p_group_id: g!.group.id}),
       ]);
-      const firstError = membersResult.error || statsResult.error || monthlyResult.error || monthlyGoalsResult.error || allGoalsResult.error;
+      const firstError = membersResult.error || statsResult.error || monthlyResult.error || monthlyGoalsResult.error || allGoalsResult.error || cleanSheetsResult.error;
       if (firstError) throw firstError;
       const statsMap = new Map((statsResult.data || []).map((row: any) => [row.user_id, row]));
       const rows = (membersResult.data || []).map((member: any) => {
@@ -50,13 +51,14 @@ export default function StatsPage() {
         monthly: monthlyResult.data?.[0] || null,
         monthlyGoals: monthlyGoalsResult.data || [],
         allGoals: allGoalsResult.data || [],
+        cleanSheets: cleanSheetsResult.data || [],
       };
     },
   });
 
   useRealtimeInvalidation(
     `v2stats-${g?.group.id}`,
-    ['player_public_stats', 'match_registrations', 'player_ratings', 'mvp_votes', 'goal_events'],
+    ['player_public_stats', 'match_registrations', 'player_ratings', 'mvp_votes', 'goal_events', 'match_clean_sheet_events', 'matches'],
     [key],
     !!g,
   );
@@ -102,6 +104,8 @@ export default function StatsPage() {
 
     <section className="stats-board-grid"><GoalBoard title={`שערי ${new Date().toLocaleDateString('he-IL', {month: 'long'})}`} rows={data?.monthlyGoals || []}/><GoalBoard title="שערים בכל הזמנים" rows={data?.allGoals || []}/></section>
 
+    <CleanSheetBoard rows={data?.cleanSheets || []}/>
+
     <Card className="stats-list-card">
       <div className="section-title"><div><h2><Sparkles size={20}/>הישגים בולטים</h2><p>עד חמישה הישגים מובילים מוצגים בכל רגע.</p></div><Badge>מתעדכן אוטומטית</Badge></div>
       <div className="achievement-grid">{achievementEntries.map(({player, achievement}) => <Link to={`/players/${player.id}`} key={`${player.id}-${achievement.key}`} className="achievement-card"><div>{achievement.icon}</div><section><strong>{achievement.title}</strong><span>{fullName(player.profile)}</span><small>{achievement.desc}</small></section><ShieldCheck size={18}/></Link>)}</div>
@@ -122,5 +126,14 @@ function GoalBoard({title, rows}: {title: string;rows: any[]}) {
     <div className="section-title"><div><h2><Goal size={20}/>{title}</h2><p>מוצגים עד חמישת המבקיעים המובילים.</p></div><Badge>{visibleRows.length} מבקיעים</Badge></div>
     <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span><Goal size={14}/>{player.goals}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים מאושרים בתקופה זו.</p>}
+  </Card>;
+}
+
+function CleanSheetBoard({rows}: {rows: any[]}) {
+  const visibleRows = rows.slice(0, 3);
+  return <Card className="stats-list-card clean-sheet-board">
+    <div className="section-title"><div><h2><ShieldCheck size={20}/>טופ 3 שוערים</h2><p>שערים נקיים ממשחקים שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{['🥇', '🥈', '🥉'][index]}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span><ShieldCheck size={14}/>{player.clean_sheets}</span></div></Link>)}</div>
+    {!visibleRows.length && <p className="empty-inline">עדיין אין שערים נקיים ממשחקים שהסתיימו.</p>}
   </Card>;
 }

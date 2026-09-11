@@ -3608,6 +3608,21 @@ body {
     background: linear-gradient(155deg, rgba(14, 31, 52, .98), rgba(9, 22, 38, .98))
 }
 
+.clean-sheet-board {
+    border-color: rgba(82, 213, 169, .22);
+    background: radial-gradient(circle at 92% 5%, rgba(82, 213, 169, .11), transparent 31%), linear-gradient(155deg, rgba(14, 31, 52, .98), rgba(9, 22, 38, .98))
+}
+
+.clean-sheet-board .section-title h2 svg,
+.clean-sheet-board .leader-stats svg {
+    color: var(--mint)
+}
+
+.clean-sheet-board .leader-row:first-child {
+    border-color: rgba(82, 213, 169, .18);
+    background: rgba(82, 213, 169, .045)
+}
+
 .stats-list-card .section-title h2 {
     display: flex;
     align-items: center;
