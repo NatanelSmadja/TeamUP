@@ -15,6 +15,7 @@ import {GoalCenter} from '../components/GoalCenter';
 import TeamReveal from '../components/TeamReveal';
 import {RatingAuditPanel} from '../components/RatingAuditPanel';
 import {MatchRoundCenter} from '../components/MatchRoundCenter';
+import {MatchRoundTimer} from '../components/MatchRoundTimer';
 
 const colorNames: any = {
   red: 'אדומים',
@@ -141,7 +142,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (searchParams.get('reveal') === 'teams' && q.data?.teams.length) setTeamRevealOpen(true);
   }, [q.data?.teams.length, searchParams]);
-  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events', 'match_team_win_events', 'match_clean_sheet_events'], [key, ['v2-home']], !!id);
+  useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events', 'match_team_win_events', 'match_clean_sheet_events', 'match_round_timers'], [key, ['v2-home']], !!id);
   const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
   const members = useQuery({
     queryKey: ['match-registration-members', q.data?.match.group_id],
@@ -799,6 +800,7 @@ export default function MatchPage() {
           {canEditPublishedTeams && <p className="drag-help">גרירה מעבירה שחקן. לחיצה על שני שחקנים מקבוצות שונות מחליפה ביניהם. מנעול מונע שינוי בטעות.</p>}
         </section>
       )}
+      <MatchRoundTimer match={match}/>
       <GoalCenter match={match} registrations={regs} />
       <MatchRoundCenter match={match} registrations={regs} teams={teams} />
       <TeamReveal match={match} teams={teams} balance={balance} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>

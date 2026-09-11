@@ -6154,6 +6154,180 @@ body {
     cursor: pointer
 }
 
+.match-round-timer {
+    display: grid;
+    gap: 18px;
+    overflow: hidden;
+    border-color: rgba(82, 148, 255, .22);
+    background: radial-gradient(circle at 12% 10%, rgba(63, 132, 255, .12), transparent 34%), linear-gradient(145deg, rgba(18, 36, 59, .99), rgba(9, 22, 39, .99))
+}
+
+.match-timer-head, .match-timer-head > div, .match-timer-head > div > span,
+.match-timer-body, .match-timer-duration, .match-timer-actions {
+    display: flex;
+    align-items: center
+}
+
+.match-timer-head {
+    justify-content: space-between;
+    gap: 16px
+}
+
+.match-timer-head > div {
+    gap: 12px
+}
+
+.match-timer-head > div > span {
+    justify-content: center;
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    border: 1px solid rgba(82, 148, 255, .25);
+    border-radius: 14px;
+    color: #79a9f5;
+    background: rgba(82, 148, 255, .1)
+}
+
+.match-timer-head small, .match-timer-head h2, .match-timer-head p {
+    display: block;
+    margin: 0
+}
+
+.match-timer-head small {
+    color: #65d7b8;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .16em
+}
+
+.match-timer-head h2 {
+    margin-top: 2px;
+    font-size: 20px
+}
+
+.match-timer-head p {
+    margin-top: 3px;
+    color: #899db3;
+    font-size: 11px
+}
+
+.match-timer-body {
+    justify-content: center;
+    gap: clamp(22px, 5vw, 58px);
+    padding: 8px 5px 3px
+}
+
+.match-timer-dial {
+    --timer-progress: 360deg;
+    position: relative;
+    display: grid;
+    width: clamp(174px, 20vw, 210px);
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 50%;
+    background: conic-gradient(#5d96f3 0 var(--timer-progress), rgba(79, 117, 166, .15) var(--timer-progress) 360deg);
+    box-shadow: 0 18px 50px rgba(2, 10, 22, .38)
+}
+
+.match-timer-dial::before {
+    position: absolute;
+    content: '';
+    inset: 10px;
+    border: 1px solid rgba(126, 168, 226, .13);
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 35%, #172c49, #0b192b 68%)
+}
+
+.match-timer-dial > div {
+    position: relative;
+    z-index: 1;
+    text-align: center
+}
+
+.match-timer-dial strong, .match-timer-dial span {
+    display: block
+}
+
+.match-timer-dial strong {
+    direction: ltr;
+    color: #f5f8fc;
+    font-size: clamp(38px, 5vw, 50px);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+    line-height: 1
+}
+
+.match-timer-dial span {
+    margin-top: 8px;
+    color: #8399b1;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em
+}
+
+.match-round-timer.running .match-timer-dial {
+    filter: drop-shadow(0 0 15px rgba(82, 148, 255, .12))
+}
+
+.match-round-timer.finished {
+    border-color: rgba(245, 196, 81, .35)
+}
+
+.match-round-timer.finished .match-timer-dial {
+    background: conic-gradient(#f2c75f 0 360deg, #f2c75f 360deg)
+}
+
+.match-round-timer.finished .match-timer-dial strong,
+.match-round-timer.finished .match-timer-dial span {
+    color: #f2cf78
+}
+
+.match-timer-panel {
+    display: grid;
+    width: min(100%, 470px);
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(112, 151, 194, .16);
+    border-radius: 16px;
+    background: rgba(8, 22, 39, .65)
+}
+
+.match-timer-duration {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px auto;
+    gap: 8px
+}
+
+.match-timer-duration label {
+    grid-column: 1 / -1;
+    color: #a9b9cb;
+    font-size: 11px;
+    font-weight: 800
+}
+
+.match-timer-duration .form-control {
+    direction: ltr;
+    text-align: center;
+    font-variant-numeric: tabular-nums
+}
+
+.match-timer-duration .tap {
+    white-space: nowrap
+}
+
+.match-timer-actions {
+    gap: 8px
+}
+
+.match-timer-actions .tap:first-child {
+    flex: 1
+}
+
+.match-timer-actions .tap:last-child {
+    flex: 0 0 auto
+}
+
 .round-center-card {
     display: grid;
     gap: 18px;
@@ -6456,6 +6630,46 @@ body {
     }
 
     .clean-sheet-controls .tap {
+        width: 100%
+    }
+
+    .match-timer-head {
+        align-items: flex-start
+    }
+
+    .match-timer-head p {
+        display: none
+    }
+
+    .match-timer-body {
+        flex-direction: column;
+        gap: 20px;
+        padding-top: 2px
+    }
+
+    .match-timer-dial {
+        width: min(58vw, 194px)
+    }
+
+    .match-timer-panel {
+        width: 100%;
+        padding: 12px
+    }
+
+    .match-timer-duration {
+        grid-template-columns: 82px minmax(0, 1fr)
+    }
+
+    .match-timer-duration .tap {
+        width: 100%
+    }
+
+    .match-timer-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr
+    }
+
+    .match-timer-actions .tap {
         width: 100%
     }
 }
