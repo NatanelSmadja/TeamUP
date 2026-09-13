@@ -1,3 +1,6 @@
+import GoalScorersDialog from '../components/GoalScorersDialog';
+import RatingLeadersDialog from '../components/RatingLeadersDialog';
+import {useAuth} from '../contexts/AuthContext';
 import {useQuery} from '@tanstack/react-query';
 import {Award, CalendarDays, Crown, Flame, Goal, Medal, ShieldCheck, Sparkles, Star, Trophy, Users} from 'lucide-react';
 import {Link} from 'react-router-dom';
@@ -17,6 +20,7 @@ const achievementDefs = [
 ];
 
 export default function StatsPage() {
+  const {user} = useAuth();
   const {data: g} = useGroup();
   const key = ['v2-stats', g?.group.id];
   const {data, isLoading, error} = useQuery({
@@ -67,7 +71,7 @@ export default function StatsPage() {
   if (error) return <Card className="empty-state"><h2>לא הצלחנו לטעון את הסטטיסטיקות</h2><p>{error.message}</p></Card>;
 
   const rows = data?.rows || [];
-  const byRating = rows.slice().sort((a, b) => b.rating - a.rating || b.ratingCount - a.ratingCount || a.id.localeCompare(b.id));
+  const byRating = rows.filter((player) => player.ratingCount > 0).sort((a, b) => b.rating - a.rating || b.ratingCount - a.ratingCount || a.id.localeCompare(b.id));
   const byMvp = rows.slice().sort((a, b) => b.mvp - a.mvp || b.rating - a.rating || a.id.localeCompare(b.id));
   const byGames = rows.slice().sort((a, b) => b.games - a.games || b.rating - a.rating || a.id.localeCompare(b.id));
   const monthly: any = data?.monthly;
@@ -114,18 +118,22 @@ export default function StatsPage() {
 
     <Card className="stats-list-card">
       <div className="section-title"><div><h2><Trophy size={20}/>חמישיית המובילים</h2><p>הדירוג קודם; בשוויון מספר הדירוגים מכריע.</p></div><Badge>{Math.min(5, byRating.length)} שחקנים</Badge></div>
-      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index < 3 ? [<Trophy key="first"/>, <Medal key="second"/>, <Award key="third"/>][index] : index + 1}</b><div className="player-avatar">{player.profile?.first_name?.[0] || 'ש'}</div><div><strong>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span><Star size={14}/>{player.rating.toFixed(2)}</span><span><Crown size={14}/>{player.mvp}</span><span><Users size={14}/>{player.games}</span></div></Link>)}</div>
-      {!byRating.length && <p className="empty-inline">אין עדיין נתוני שחקנים.</p>}
+      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index < 3 ? [<Trophy key="first"/>, <Medal key="second"/>, <Award key="third"/>][index] : index + 1}</b><div className="player-avatar">{player.profile?.first_name?.[0] || 'ש'}</div><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span><Star size={14}/>{player.rating.toFixed(2)}</span><span><Crown size={14}/>{player.mvp}</span><span><Users size={14}/>{player.games}</span></div></Link>)}</div>
+      {!byRating.length && <p className="empty-inline">עדיין אין שחקנים שקיבלו דירוג.</p>}
+      <RatingLeadersDialog rows={byRating}/>
     </Card>
   </div>;
 }
 
 function GoalBoard({title, rows}: {title: string;rows: any[]}) {
-  const visibleRows = rows.slice(0, 5);
+  const {user} = useAuth();
+  const scorers = rows.filter((player) => Number(player.goals) > 0);
+  const visibleRows = scorers.slice(0, 5);
   return <Card className="stats-list-card">
     <div className="section-title"><div><h2><Goal size={20}/>{title}</h2><p>מוצגים עד חמישת המבקיעים המובילים.</p></div><Badge>{visibleRows.length} מבקיעים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span><Goal size={14}/>{player.goals}</span></div></Link>)}</div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span><Goal size={14}/>{player.goals}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים מאושרים בתקופה זו.</p>}
+    <GoalScorersDialog title={title} rows={scorers}/>
   </Card>;
 }
 

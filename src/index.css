@@ -7394,6 +7394,18 @@ body {
 .home-insights-heading p { color:#8fa2b9; font-size:12px }
 .home-insights-heading > a { display:flex; align-items:center; gap:5px; color:#83ace9; font-size:12px; font-weight:800 }
 .home-insights-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(310px,.7fr); gap:12px }
+.goal-scorers-more { margin-top:12px; width:100% }
+.goal-scorers-dialog { width:min(560px,calc(100% - 24px)); max-height:80dvh; margin:auto; padding:20px; overflow:auto; color:var(--text,#f4f7fb); background:#0b192b; border:1px solid var(--line); border-radius:20px; box-shadow:0 24px 80px #0008 }
+.goal-scorers-dialog::backdrop { background:rgb(0 0 0 / 65%) }
+body:has(.goal-scorers-dialog[open]) { overflow:hidden }
+.goal-scorers-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:12px }
+.goal-scorers-heading h2 { margin:0; font-size:20px }
+.goal-scorers-heading p { margin:6px 0 16px; color:var(--muted); font-size:13px }
+.goal-scorers-heading button { flex-shrink:0 }
+.goal-scorers-personal { margin:0 0 12px; padding:12px; border-radius:12px; background:#facc1514; color:#facc15 }
+.goal-scorers-dialog .leader-row { grid-template-columns:28px 40px minmax(0,1fr) auto; gap:8px }
+.goal-scorers-dialog .leader-row strong { overflow-wrap:anywhere }
+.goal-scorer-me { color:#facc15 }
 .home-scorers-chart { min-width:0; padding:18px; border-radius:18px; background:#0b192b; box-shadow:none }
 .home-chart-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px }
 .home-chart-title > div { display:flex; align-items:center; gap:10px }
