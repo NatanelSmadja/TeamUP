@@ -48,10 +48,13 @@ export default function ProfilePage() {
     }));
   const save = async () => {
     if (!f.preferred_positions.length) return toast.error('בחר לפחות עמדה אחת');
-    const {error} = await supabase
-      .from('profiles')
-      .update({...f, preferred_position: f.preferred_positions[0]})
-      .eq('id', profile!.id);
+    const {error} = await supabase.rpc('update_own_profile', {
+      p_first_name: f.first_name,
+      p_last_name: f.last_name,
+      p_birth_date: f.birth_date || null,
+      p_preferred_positions: f.preferred_positions,
+      p_preferred_foot: f.preferred_foot,
+    });
     if (error) return toast.error(error.message);
     await refreshProfile();
     toast.success('הפרופיל נשמר');

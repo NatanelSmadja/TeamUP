@@ -12,7 +12,7 @@ const authError=(message:string)=>{
  if(value.includes('invalid login credentials'))return 'האימייל או הסיסמה אינם נכונים.';
  if(value.includes('email not confirmed'))return 'צריך לאמת את כתובת המייל לפני ההתחברות.';
  if(value.includes('user already registered')||value.includes('already been registered'))return 'כבר קיים חשבון עם כתובת המייל הזו.';
- if(value.includes('password should be at least'))return 'הסיסמה צריכה להכיל לפחות 6 תווים.';
+ if(value.includes('password should be at least'))return 'הסיסמה צריכה להכיל לפחות 10 תווים.';
  if(value.includes('different from the old password')||value.includes('same password'))return 'יש לבחור סיסמה חדשה ששונה מהסיסמה הקודמת.';
  if(value.includes('unable to validate email')||value.includes('invalid email'))return 'כתובת המייל אינה תקינה.';
  if(value.includes('rate limit')||value.includes('too many requests'))return 'בוצעו יותר מדי ניסיונות. המתן מעט ונסה שוב.';
@@ -56,7 +56,7 @@ export default function AuthPage(){
    finally{setBusy(false)}
    return;
   }
-  if(f.password.length<6){setFormError('הסיסמה צריכה להכיל לפחות 6 תווים.');return}
+  if(f.password.length<10){setFormError('הסיסמה צריכה להכיל לפחות 10 תווים.');return}
   if(mode==='signup'){
    if(!f.first_name.trim()||!f.last_name.trim()){setFormError('יש להזין שם פרטי ושם משפחה.');return}
    if(f.password!==confirmPassword){setFormError('הסיסמאות אינן תואמות.');return}
@@ -89,7 +89,7 @@ export default function AuthPage(){
 
  const updatePassword=async(event:React.FormEvent)=>{
   event.preventDefault();setFormError('');
-  if(f.password.length<6){setFormError('הסיסמה צריכה להכיל לפחות 6 תווים.');return}
+  if(f.password.length<10){setFormError('הסיסמה צריכה להכיל לפחות 10 תווים.');return}
   if(f.password!==confirmPassword){setFormError('הסיסמאות אינן תואמות.');return}
   setBusy(true);
   try{

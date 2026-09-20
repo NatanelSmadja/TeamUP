@@ -127,7 +127,6 @@ export default function GroupSettingsPage() {
     useRealtimeInvalidation(`settings-members-${g?.group.id}`, ['group_members', 'profiles'], [membersKey], !!g && canManageMembers);
     const save = useMutation({
         mutationFn: async () => {
-            const before = g!.group;
             const patch = {
                 name: f.name.trim(),
                 description: f.description.trim() || null,
@@ -137,18 +136,19 @@ export default function GroupSettingsPage() {
                 theme_color: f.theme_color,
                 poll_miss_tracking_enabled: f.poll_miss_tracking_enabled,
                 poll_miss_alert_threshold: Math.max(1, Math.min(20, Number(f.poll_miss_alert_threshold) || 2)),
-                updated_at: new Date().toISOString(),
             };
-            const {error} = await supabase.from('groups').update(patch).eq('id', g!.group.id);
-            if (error) throw error;
-            await supabase.rpc('log_group_audit', {
+            const {error} = await supabase.rpc('update_group_settings', {
                 p_group_id: g!.group.id,
-                p_action: 'group.updated',
-                p_entity_type: 'group',
-                p_entity_id: g!.group.id,
-                p_old: before,
-                p_new: patch,
+                p_name: patch.name,
+                p_description: patch.description,
+                p_default_location: patch.default_location,
+                p_visibility: patch.visibility,
+                p_join_mode: patch.join_mode,
+                p_theme_color: patch.theme_color,
+                p_poll_miss_tracking_enabled: patch.poll_miss_tracking_enabled,
+                p_poll_miss_alert_threshold: patch.poll_miss_alert_threshold,
             });
+            if (error) throw error;
         },
         onSuccess: () => {
             const normalized = {

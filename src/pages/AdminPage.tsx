@@ -142,15 +142,17 @@ export default function AdminPage() {
       if (!Number.isInteger(teamCount) || teamCount < 2 || teamCount > 4) throw new Error('מספר הקבוצות צריך להיות בין 2 ל־4.');
       if (!Number.isInteger(teamSize) || teamSize < 1) throw new Error('גודל קבוצה צריך להיות לפחות שחקן אחד.');
       if (!Number.isInteger(capacity) || capacity < teamCount) throw new Error('יעד הנרשמים צריך להיות לפחות כמספר הקבוצות, כדי שלא תיווצר קבוצה ריקה.');
-      const {error} = await supabase.from('matches').insert({
-        ...f,
-        capacity,
-        team_count: teamCount,
-        team_size: teamSize,
-        price_per_player: +f.price_per_player,
-        group_id: g!.group.id,
-        created_by: g!.member.user_id,
-        status: 'registration_open',
+      const {error} = await supabase.rpc('create_match_secure', {
+        p_group_id: g!.group.id,
+        p_title: f.title,
+        p_match_date: f.match_date,
+        p_start_time: f.start_time,
+        p_end_time: f.end_time || null,
+        p_location: f.location,
+        p_capacity: capacity,
+        p_team_count: teamCount,
+        p_team_size: teamSize,
+        p_price_per_player: +f.price_per_player,
       });
       if (error) {
         if (error.message.includes('matches_team_count_check')) throw new Error('מספר הקבוצות צריך להיות בין 2 ל־4.');
@@ -166,20 +168,14 @@ export default function AdminPage() {
   });
   const createPoll = useMutation({
     mutationFn: async () => {
-      const {data, error} = await supabase
-        .from('weekly_polls')
-        .insert({
-          group_id: g!.group.id,
-          created_by: g!.member.user_id,
-          title: pollForm.title.trim() || 'סקר זמינות',
-          description: pollForm.description.trim() || null,
-          week_start: pollForm.week_start,
-          status: 'open',
-        })
-        .select('id')
-        .single();
+      const {data, error} = await supabase.rpc('create_weekly_poll_secure', {
+        p_group_id: g!.group.id,
+        p_title: pollForm.title.trim() || 'סקר זמינות',
+        p_description: pollForm.description.trim() || null,
+        p_week_start: pollForm.week_start,
+      });
       if (error) throw error;
-      return data;
+      return {id: data as string};
     },
     onSuccess: (row) => {
       toast.success('הסקר נפתח');
@@ -199,7 +195,12 @@ export default function AdminPage() {
     }
   };
   const updatePoll = async (id: string, patch: any, success: string) => {
-    const {error} = await supabase.from('weekly_polls').update(patch).eq('id', id);
+    const {error} = await supabase.rpc('update_weekly_poll_secure', {
+      p_poll_id: id,
+      p_title: patch.title ?? null,
+      p_week_start: patch.week_start ?? null,
+      p_status: patch.status ?? null,
+    });
     if (error) toast.error(error.message);
     else {
       toast.success(success);
@@ -215,7 +216,7 @@ export default function AdminPage() {
   };
   const deletePoll = async (p: any) => {
     if (!confirm(`למחוק את “${p.title || 'הסקר'}” ואת כל ההצבעות שלו?`)) return;
-    const {error} = await supabase.from('weekly_polls').delete().eq('id', p.id);
+    const {error} = await supabase.rpc('delete_weekly_poll_secure', {p_poll_id: p.id});
     if (error) toast.error(error.message);
     else {
       toast.success('הסקר נמחק');
