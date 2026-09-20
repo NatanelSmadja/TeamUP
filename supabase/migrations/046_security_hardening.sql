@@ -54,6 +54,7 @@ $$;
 
 -- Profiles: reads are limited to self, system admins, and active shared groups.
 drop policy if exists "profiles visible to authenticated" on public.profiles;
+drop policy if exists "profiles visible to self or shared group" on public.profiles;
 create policy "profiles visible to self or shared group"
 on public.profiles for select to authenticated
 using (
