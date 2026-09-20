@@ -15,7 +15,10 @@ export function Button({className, variant = 'primary', title, ...p}: ButtonHTML
 }
 
 export function Input({className, ...p}: InputHTMLAttributes<HTMLInputElement>) {
-    return <input className={cn('form-control', className)} {...p}/>
+    const securePasswordProps = p.autoComplete === 'new-password'
+        ? {...p, minLength: Math.max(Number(p.minLength) || 0, 10), placeholder: p.placeholder === 'לפחות 6 תווים' ? 'לפחות 10 תווים' : p.placeholder}
+        : p;
+    return <input className={cn('form-control', className)} {...securePasswordProps}/>
 }
 
 export function Select({className, ...p}: React.SelectHTMLAttributes<HTMLSelectElement>) {
