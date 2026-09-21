@@ -58,6 +58,24 @@ export function AuthProvider({children}:{children:React.ReactNode}){
    window.removeEventListener('online',refreshVisibleProfile);
   };
  },[]);
+ useEffect(()=>{
+  if(!session?.user.id)return;
+  let stopped=false;
+  const heartbeat=()=>{
+   if(stopped||document.visibilityState!=='visible'||!navigator.onLine)return;
+   void supabase.rpc('touch_user_presence').then(({error})=>{if(error)console.warn('Presence heartbeat failed',error.message)});
+  };
+  heartbeat();
+  const interval=window.setInterval(heartbeat,30000);
+  document.addEventListener('visibilitychange',heartbeat);
+  window.addEventListener('online',heartbeat);
+  return()=>{
+   stopped=true;
+   window.clearInterval(interval);
+   document.removeEventListener('visibilitychange',heartbeat);
+   window.removeEventListener('online',heartbeat);
+  };
+ },[session?.user.id]);
  const finishPasswordRecovery=()=>{setPasswordRecovery(false);window.history.replaceState({},document.title,window.location.pathname)};
  const value=useMemo(()=>({session,user:session?.user??null,profile,loading,passwordRecovery,finishPasswordRecovery,signOut:async()=>{setPasswordRecovery(false);try{await disablePushNotifications()}catch{}loadedProfileUserId.current=null;setProfile(null);await supabase.auth.signOut()},refreshProfile:async()=>load(session?.user.id)}),[session,profile,loading,passwordRecovery]);
  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

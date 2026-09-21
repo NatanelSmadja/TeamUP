@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SystemPresence from '../components/SystemPresence';
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -162,6 +163,7 @@ export default function SystemAdminPage() {
         </div>
         <Database />
       </div>
+      <SystemPresence/>
       <div className="stats-grid">
         {[
           {label: "משתמשים", value: s.users, onOpen: () => setUsersOpen(true)},

@@ -1041,6 +1041,21 @@ select {
 .system-admin-page .stats-grid .system-stat-clickable:focus-visible { color:var(--text); border-color:#bfaeef; background:var(--surface-tint); box-shadow:5px 6px 0 #e5dcfa; transform:translateY(-2px); outline:none }
 .system-admin-page .stats-grid .system-stat-clickable:hover:after,
 .system-admin-page .stats-grid .system-stat-clickable:focus-visible:after { color:#4b2b9d; background:#d8ff63; transform:translate(-1px,-1px) }
+.presence-live-dot { display:inline-block; width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:#24a868; box-shadow:0 0 0 4px rgba(36,168,104,.12) }
+.system-presence-panel { padding:20px; color:var(--text); background:var(--surface); border-color:var(--line) }
+.system-presence-panel .section-title { flex-wrap:wrap; gap:8px }
+.system-presence-panel .section-title h2 { color:var(--text) }
+.system-presence-panel p,.system-presence-panel .section-title > span { color:var(--muted); font-size:12px }
+.system-presence-counts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0 }
+.system-presence-counts > div { display:grid; gap:4px; padding:14px; border-radius:12px; background:var(--surface-tint) }
+.system-presence-counts strong { color:var(--text); font-size:32px }
+.system-presence-counts span { color:var(--muted); font-size:12px }
+.system-presence-panel summary { padding:14px 0; cursor:pointer; font-weight:700 }
+.system-presence-rows { max-height:360px; overflow:auto }
+.system-presence-person { display:grid; grid-template-columns:8px minmax(0,1fr); gap:5px 12px; align-items:center; padding:12px 4px; border-bottom:1px solid var(--line) }
+.system-presence-person strong { overflow-wrap:anywhere }
+.system-presence-person time { grid-column:2; color:var(--muted); font-size:12px }
+.presence-away-dot { width:8px; height:8px; border-radius:50%; background:var(--muted) }
 
 body:has(.system-users-modal-layer),
 body:has(.member-modal-layer) { overflow:hidden }
