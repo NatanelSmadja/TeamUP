@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
@@ -153,8 +154,8 @@ export default function SystemAdminPage() {
     `${group.name || ""} ${group.owner_name || ""}`.toLowerCase().includes(groupSearch.trim().toLowerCase()),
   );
   return (
-    <div className="space-y-5">
-      <div className="page-heading">
+    <div className="system-admin-page space-y-5">
+      <div className="page-heading system-admin-heading">
         <div>
           <p>בקרה טכנית על הפלטפורמה</p>
           <h1>מערכת ניהול</h1>
@@ -178,14 +179,14 @@ export default function SystemAdminPage() {
           </Card>
         ))}
       </div>
-      {usersOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-users-title"
+      {usersOpen && createPortal(<div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-users-title"
                          onMouseDown={(event) => event.target === event.currentTarget && setUsersOpen(false)}>
         <Card className="system-users-modal">
           <div className="section-title">
             <div><h2 id="system-users-title"><UserRoundSearch/>משתמשי המערכת</h2><p>{s.active_users ?? 0} פעילים · {s.archived_users ?? 0} בארכיון</p></div>
             <Button variant="ghost" aria-label="סגירת חלון" onClick={() => setUsersOpen(false)}><X size={20}/></Button>
           </div>
-          <Input autoFocus placeholder="חיפוש לפי שם..." value={userSearch} onChange={(event) => setUserSearch(event.target.value)}/>
+          <Input placeholder="חיפוש לפי שם..." value={userSearch} onChange={(event) => setUserSearch(event.target.value)}/>
           <div className="system-users-list">
             {users.isLoading && <p className="empty-inline">טוען משתמשים...</p>}
             {users.error && <p className="empty-inline">לא הצלחנו לטעון משתמשים: {users.error instanceof Error ? users.error.message : "שגיאה"}</p>}
@@ -217,8 +218,8 @@ export default function SystemAdminPage() {
             {!users.isLoading && !users.error && !visibleUsers.length && <p className="empty-inline">לא נמצאו משתמשים.</p>}
           </div>
         </Card>
-      </div>}
-      {selectedUserId && <div className="system-users-modal-layer system-player-layer" role="dialog" aria-modal="true" aria-labelledby="system-player-title"
+      </div>, document.body)}
+      {selectedUserId && createPortal(<div className="system-users-modal-layer system-player-layer" role="dialog" aria-modal="true" aria-labelledby="system-player-title"
                               onMouseDown={(event) => event.target === event.currentTarget && setSelectedUserId(null)}>
         <Card className="system-users-modal system-player-modal">
           <div className="section-title">
@@ -231,15 +232,15 @@ export default function SystemAdminPage() {
                                                        onAssign={(groupId) => assignUser.mutate({userId:selectedUserId,groupId})}
                                                        onUnassign={(groupId) => unassignUser.mutate({userId:selectedUserId,groupId})}/>}
         </Card>
-      </div>}
-      {groupsOpen && <div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
+      </div>, document.body)}
+      {groupsOpen && createPortal(<div className="system-users-modal-layer" role="dialog" aria-modal="true" aria-labelledby="system-groups-title"
                           onMouseDown={(event) => event.target === event.currentTarget && setGroupsOpen(false)}>
         <Card className="system-users-modal">
           <div className="section-title">
             <div><h2 id="system-groups-title"><UsersRound/>קבוצות בפלטפורמה</h2><p>{s.active_groups ?? 0} פעילות · {s.archived_groups ?? 0} בארכיון</p></div>
             <Button variant="ghost" aria-label="סגירת חלון" onClick={() => setGroupsOpen(false)}><X size={20}/></Button>
           </div>
-          <Input autoFocus placeholder="חיפוש לפי שם קבוצה או בעלים..." value={groupSearch}
+          <Input placeholder="חיפוש לפי שם קבוצה או בעלים..." value={groupSearch}
                  onChange={(event) => setGroupSearch(event.target.value)}/>
           <div className="system-users-list">
             {groups.isLoading && <p className="empty-inline">טוען קבוצות...</p>}
@@ -264,7 +265,7 @@ export default function SystemAdminPage() {
             {!groups.isLoading && !groups.error && !visibleGroups.length && <p className="empty-inline">לא נמצאו קבוצות.</p>}
           </div>
         </Card>
-      </div>}
+      </div>, document.body)}
     </div>
   );
 }

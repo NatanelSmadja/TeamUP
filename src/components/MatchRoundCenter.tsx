@@ -81,8 +81,8 @@ export function MatchRoundCenter({match,registrations,teams}:{match:Match;regist
   onSuccess:()=>{toast.success('השער הנקי האחרון בוטל');refresh()},onError:(e:any)=>toast.error(e.message),
  });
 
- const wins=data?.wins||[];
- const cleanSheets=data?.cleanSheets||[];
+ const wins=useMemo(()=>data?.wins||[],[data?.wins]);
+ const cleanSheets=useMemo(()=>data?.cleanSheets||[],[data?.cleanSheets]);
  const winCounts=useMemo(()=>new Map(teams.map(team=>[team.id,wins.filter(event=>event.team_id===team.id).length])),[teams,wins]);
  const leadingWinCount=Math.max(0,...winCounts.values());
  const cleanSheetRows=useMemo(()=>{

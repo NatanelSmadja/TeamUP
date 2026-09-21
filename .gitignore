@@ -6,3 +6,11 @@ dist
 supabase/.temp/
 .DS_Store
 *.local
+.idea/
+tmp/
+*.tsbuildinfo
+docs/vendor/
+docs/TEAMUP-*.png
+docs/TEAMUP-redesign-*.html
+docs/TEAMUP-redesign-*.css
+docs/TEAMUP-redesign-*.js

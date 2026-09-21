@@ -100,7 +100,7 @@ export default function HomePage() {
 
   return <div className="home-command">
     <header className="home-welcome">
-      <div><p>{g?.group.name || 'TEAMUP CLUB'}</p><h1>{greeting}, {profile?.first_name || 'שחקן'}</h1><span>המשחק הבא, המשימות והמספרים שלך — במקום אחד.</span></div>
+      <div><p>{g?.group.name || 'הקבוצה שלי'}</p><h1>{greeting}, {profile?.first_name || 'שחקן'}</h1><span>כל מה שצריך לקראת המשחק הבא מחכה לך כאן.</span></div>
       <div className="home-today"><CalendarDays size={18}/><span>{todayLabel}</span></div>
     </header>
 
@@ -137,10 +137,10 @@ export default function HomePage() {
       </section>
 
       <section className="home-team-insights">
-        <div className="home-insights-heading"><div><small>TEAM PULSE</small><h2>תמונת הקבוצה</h2><p>המובילים והכובשים, לפי המשחקים שהושלמו והשערים שאושרו.</p></div><Link to="/stats">לכל הסטטיסטיקות <ArrowLeft size={16}/></Link></div>
+        <div className="home-insights-heading"><div><small>הקבוצה במספרים</small><h2>תמונת הקבוצה</h2><p>המובילים והכובשים, לפי המשחקים שהושלמו והשערים שאושרו.</p></div><Link to="/stats">לכל הסטטיסטיקות <ArrowLeft size={16}/></Link></div>
         <div className="home-insights-grid">
           <Card className="home-scorers-chart">
-            <div className="home-chart-title"><div><Goal size={20}/><span><small>כל הזמנים</small><strong>כובשים מובילים</strong></span></div><Badge>TOP 5</Badge></div>
+            <div className="home-chart-title"><div><Goal size={20}/><span><small>כל הזמנים</small><strong>כובשים מובילים</strong></span></div><Badge>5 מובילים</Badge></div>
             <div className="home-chart-bars">
               {data?.goalLeaders.slice(0, 5).map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className={index === 0 ? 'leader' : ''}>
                 <b>{index + 1}</b><span className="player-avatar sm">{player.first_name?.[0] || 'ש'}</span><span className="home-chart-player"><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><i><em style={{width: `${Math.max(8, player.goals / maxGoals * 100)}%`}}/></i></span><span className="home-chart-value"><strong>{player.goals}</strong><small>שערים</small></span>
@@ -156,6 +156,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <details className="home-more-section">
+        <summary>עוד מהקבוצה <span>משחקים נוספים, זמינות ופעילות</span></summary>
       <section className="home-secondary-grid">
         <Card className="home-compact-card">
           <div className="section-title"><h2><CalendarDays size={18}/>בהמשך השבוע</h2><Link to="/matches">הכול</Link></div>
@@ -179,6 +181,7 @@ export default function HomePage() {
           <div className="home-activity-list">{data?.activity.slice(0, 3).map((event: any) => <Link key={event.id} to={event.entity_type === 'match' ? `/matches/${event.entity_id}` : event.entity_type === 'poll' ? `/availability?poll=${event.entity_id}` : event.entity_type === 'rating' ? '/ratings' : '/activity'}><i/><span><strong>{event.title}</strong><small>{new Date(event.created_at).toLocaleDateString('he-IL', {day: 'numeric', month: 'short'})} · {new Date(event.created_at).toLocaleTimeString('he-IL', {hour: '2-digit', minute: '2-digit'})}</small></span></Link>)}{!data?.activity.length && <p className="empty-inline">עדיין אין פעילות חדשה.</p>}</div>
         </Card>
       </section>
+      </details>
 
       {manager && g && <Card className="home-manager-overview"><div><ShieldCheck size={19}/><span><small>תצוגת מנהל</small><strong>מצב הקבוצה</strong></span></div><GroupDashboardCard groupId={g.group.id}/><Link to="/admin">למרכז הניהול <ArrowLeft size={16}/></Link></Card>}
     </>}

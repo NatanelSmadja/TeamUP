@@ -30,10 +30,7 @@ export function Badge({children, className}: { children: React.ReactNode; classN
 }
 
 export function FieldHelp({title, children}: { title: string; children: React.ReactNode }) {
-    return <label className="block"><span
-        className="mb-1 flex items-center gap-1.5 text-sm font-extrabold text-[#f4f7fb]">{title}<HelpCircle size={14}
-                                                                                                            className="text-[#8ca0ba]"/></span><span
-        className="mb-2 block text-xs leading-5 text-[#91a0b4]">{children}</span></label>
+    return <label className="field-help"><span className="field-help-title">{title}<HelpCircle size={14}/></span><span className="field-help-copy">{children}</span></label>
 }
 
 export function Tooltip({label, children}: { label: string; children: React.ReactNode }) {

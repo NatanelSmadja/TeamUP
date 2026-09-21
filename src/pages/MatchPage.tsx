@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Link, useParams, useSearchParams} from 'react-router-dom';
+import {createPortal} from 'react-dom';
 import {ArrowRight, CalendarDays, Check, CheckCircle2, Clock3, Eye, GripVertical, Lock, LockOpen, MapPin, MessageCircle, Pencil, RefreshCcw, Repeat2, Save, Share2, ShieldCheck, Star, Trash2, Undo2, UserPlus, UserX, Users, X} from 'lucide-react';
 import {toast} from 'sonner';
 import {Badge, Button, Card, Input, Select} from '../components/ui';
@@ -13,6 +14,7 @@ import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {GoalCenter} from '../components/GoalCenter';
 import TeamReveal from '../components/TeamReveal';
+import OpeningDraw from '../components/OpeningDraw';
 import {RatingAuditPanel} from '../components/RatingAuditPanel';
 import {MatchRoundCenter} from '../components/MatchRoundCenter';
 import {MatchRoundTimer} from '../components/MatchRoundTimer';
@@ -62,6 +64,9 @@ export default function MatchPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [matchTitle, setMatchTitle] = useState('');
   const [teamRevealOpen, setTeamRevealOpen] = useState(false);
+  const [openingDrawOpen, setOpeningDrawOpen] = useState(false);
+  const [matchView, setMatchView] = useState<'prepare' | 'live' | 'summary'>('prepare');
+  const [nightModeOpen, setNightModeOpen] = useState(false);
   const [ratingAuditOpen, setRatingAuditOpen] = useState(false);
   const openTeamReveal = () => {
     const next = new URLSearchParams(searchParams);
@@ -142,6 +147,24 @@ export default function MatchPage() {
   useEffect(() => {
     if (searchParams.get('reveal') === 'teams' && q.data?.teams.length) setTeamRevealOpen(true);
   }, [q.data?.teams.length, searchParams]);
+  useEffect(() => {
+    const current = q.data?.match;
+    if (!current) return;
+    if (current.status === 'completed' || current.ratings_open) setMatchView('summary');
+    else if (current.status === 'teams_published' && Date.now() >= new Date(`${current.match_date}T${current.start_time}`).getTime()) setMatchView('live');
+    else setMatchView('prepare');
+  }, [id, q.data?.match]);
+  useEffect(() => {
+    if (!nightModeOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setNightModeOpen(false);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [nightModeOpen]);
   useRealtimeInvalidation(`match-${id}`, ['matches', 'match_registrations', 'match_guests', 'teams', 'team_players', 'player_ratings', 'team_edit_history', 'goal_events', 'match_team_win_events', 'match_clean_sheet_events', 'match_round_timers'], [key, ['v2-home']], !!id);
   const canManageRegistrations = isSystemAdmin(profile) || (!!g && g.group.id === q.data?.match.group_id && canManage(g, 'manage_registrations'));
   const members = useQuery({
@@ -553,7 +576,7 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="match-page-v2">
+    <div className={`match-page-v2 match-view-${matchView}`}>
       <header className="match-page-header">
         <Link to="/matches" className="match-back-link"><ArrowRight size={17}/>כל המשחקים</Link>
         <div className="match-header-actions">
@@ -598,6 +621,12 @@ export default function MatchPage() {
           </aside>
         </div>
       </Card>
+      <nav className="match-stage-nav" aria-label="שלבי המשחק">
+        <button className={matchView === 'prepare' ? 'active' : ''} onClick={() => setMatchView('prepare')}><span>01</span><strong>לפני המשחק</strong><small>הרשמה, נוכחות וקבוצות</small></button>
+        <button className={matchView === 'live' ? 'active' : ''} onClick={() => setMatchView('live')} disabled={!teams.length}><span>02</span><strong>בזמן המשחק</strong><small>הגרלה, טיימר ותוצאות</small></button>
+        <button className={matchView === 'summary' ? 'active' : ''} onClick={() => setMatchView('summary')}><span>03</span><strong>אחרי המשחק</strong><small>סיכום ודירוגים</small></button>
+        {matchView === 'live' && teams.length > 0 && <Button onClick={() => setNightModeOpen(true)}>מצב ערב משחק</Button>}
+      </nav>
       <section className="match-command-center" aria-label="התקדמות המשחק">
         <div className="match-flow">
           {flow.map(([label, done], i) => (
@@ -728,6 +757,7 @@ export default function MatchPage() {
             </div>
             <div className="teams-heading-actions">
               <Badge><ShieldCheck size={15} />איזון {balance}%</Badge>
+              <Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button>
               <Button variant="secondary" onClick={shareTeamReveal}><Share2 size={16}/>שליחת קישור</Button>
               <Button onClick={openTeamReveal}><Eye size={16}/>חשיפת הקבוצות</Button>
             </div>
@@ -800,10 +830,17 @@ export default function MatchPage() {
           {canEditPublishedTeams && <p className="drag-help">גרירה מעבירה שחקן. לחיצה על שני שחקנים מקבוצות שונות מחליפה ביניהם. מנעול מונע שינוי בטעות.</p>}
         </section>
       )}
-      <MatchRoundTimer match={match}/>
-      <GoalCenter match={match} registrations={regs} />
-      <MatchRoundCenter match={match} registrations={regs} teams={teams} />
+      {!nightModeOpen && <div className="match-live-zone">
+        <MatchRoundTimer match={match}/>
+        <GoalCenter match={match} registrations={regs} />
+        <MatchRoundCenter match={match} registrations={regs} teams={teams} />
+      </div>}
       <TeamReveal match={match} teams={teams} balance={balance} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
+      <OpeningDraw teams={teams} open={openingDrawOpen} onClose={() => setOpeningDrawOpen(false)}/>
+      {nightModeOpen && createPortal(<div className="match-night-layer" role="dialog" aria-modal="true" aria-label="מצב ערב משחק">
+        <header><div><small>{match.title}</small><strong>מצב ערב משחק</strong></div><div><Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button><button onClick={() => setNightModeOpen(false)} aria-label="סגירת מצב ערב משחק">×</button></div></header>
+        <main><MatchRoundTimer match={match}/><GoalCenter match={match} registrations={regs}/><MatchRoundCenter match={match} registrations={regs} teams={teams}/></main>
+      </div>, document.body)}
     </div>
   );
 }

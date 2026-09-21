@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {supabase} from '../lib/supabase';
 import {useAuth} from '../contexts/AuthContext';
@@ -38,7 +38,7 @@ export function useGroup() {
       })) as GroupSession[];
     },
   });
-  const memberships = query.data || [];
+  const memberships = useMemo(() => query.data || [], [query.data]);
   const pendingId = localStorage.getItem('teamup_pending_group');
   const selected = useMemo(() => memberships.find((x) => x.group.id === pendingId) || memberships.find((x) => x.group.id === activeId) || memberships[0] || null, [memberships, activeId, pendingId]);
   useEffect(() => {
@@ -52,11 +52,11 @@ export function useGroup() {
       setActiveId(null);
     }
   }, [selected, activeId, pendingId, storageKey]);
-  const setActiveGroupId = (id: string) => {
+  const setActiveGroupId = useCallback((id: string) => {
     localStorage.setItem(storageKey, id);
     setActiveId(id);
     window.dispatchEvent(new Event(GROUP_CHANGE_EVENT));
-  };
+  }, [storageKey]);
   return {...query, data: selected, memberships, setActiveGroupId};
 }
 export function canManage(g: ReturnType<typeof useGroup>['data'], permission?: string) {

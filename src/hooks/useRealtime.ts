@@ -51,5 +51,7 @@ export function useRealtimeInvalidation(
     };
     // Stable serialized keys prevent needless reconnects while still reacting
     // when the requested tables or query keys genuinely change.
+  // The serialized keys intentionally represent the array dependencies.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelName, enabled, queryClient, tablesKey, queryKeysKey]);
 }

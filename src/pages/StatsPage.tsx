@@ -2,24 +2,25 @@ import GoalScorersDialog from '../components/GoalScorersDialog';
 import RatingLeadersDialog from '../components/RatingLeadersDialog';
 import {useAuth} from '../contexts/AuthContext';
 import {useQuery} from '@tanstack/react-query';
-import {Award, CalendarDays, Crown, Flame, Goal, Medal, ShieldCheck, Sparkles, Star, Trophy, Users} from 'lucide-react';
 import {Link} from 'react-router-dom';
 import {Badge, Card} from '../components/ui';
 import {useGroup} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
 import {fullName} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
+import {useState} from 'react';
 
 const achievementDefs = [
-  {key: 'first_match', title: 'משחק ראשון', desc: 'הופעה ראשונה ב־TEAMUP', icon: '⚽', test: (p: any) => p.games >= 1},
-  {key: 'ten_matches', title: 'חבר קבוע', desc: '10 הופעות בקבוצה', icon: '🔟', test: (p: any) => p.games >= 10},
-  {key: 'twenty_five', title: 'עמוד תווך', desc: '25 הופעות בקבוצה', icon: '🧱', test: (p: any) => p.games >= 25},
-  {key: 'first_mvp', title: 'MVP ראשון', desc: 'זכייה ראשונה כמצטיין המשחק', icon: '🏆', test: (p: any) => p.mvp >= 1},
-  {key: 'five_mvp', title: 'כוכב הקבוצה', desc: '5 זכיות MVP', icon: '⭐', test: (p: any) => p.mvp >= 5},
-  {key: 'elite_rating', title: 'רמת עילית', desc: 'דירוג ממוצע 4.5 ומעלה', icon: '🔥', test: (p: any) => p.rating >= 4.5},
+  {key: 'first_match', title: 'משחק ראשון', desc: 'הופעה ראשונה ב־TEAMUP', test: (p: any) => p.games >= 1},
+  {key: 'ten_matches', title: 'חבר קבוע', desc: '10 הופעות בקבוצה', test: (p: any) => p.games >= 10},
+  {key: 'twenty_five', title: 'עמוד תווך', desc: '25 הופעות בקבוצה', test: (p: any) => p.games >= 25},
+  {key: 'first_mvp', title: 'MVP ראשון', desc: 'זכייה ראשונה כמצטיין המשחק', test: (p: any) => p.mvp >= 1},
+  {key: 'five_mvp', title: 'כוכב הקבוצה', desc: '5 זכיות MVP', test: (p: any) => p.mvp >= 5},
+  {key: 'elite_rating', title: 'רמת עילית', desc: 'דירוג ממוצע 4.5 ומעלה', test: (p: any) => p.rating >= 4.5},
 ];
 
 export default function StatsPage() {
+  const [view, setView] = useState<'overview' | 'month' | 'all'>('overview');
   const {user} = useAuth();
   const {data: g} = useGroup();
   const key = ['v2-stats', g?.group.id];
@@ -84,44 +85,51 @@ export default function StatsPage() {
     .filter((entry): entry is {player: typeof rows[number];achievement: typeof achievementDefs[number]} => Boolean(entry.achievement))
     .slice(0, 5);
   const highlights = [
-    {title: 'הדירוג הגבוה', player: byRating[0], value: byRating[0]?.rating.toFixed(2) || '0.00', Icon: Star},
-    {title: 'מלך ה־MVP', player: byMvp[0], value: byMvp[0]?.mvp || 0, Icon: Crown},
-    {title: 'מלך ההופעות', player: byGames[0], value: byGames[0]?.games || 0, Icon: Flame},
+    {title: 'הדירוג הגבוה', player: byRating[0], value: byRating[0]?.rating.toFixed(2) || '0.00'},
+    {title: 'מלך ה־MVP', player: byMvp[0], value: byMvp[0]?.mvp || 0},
+    {title: 'מלך ההופעות', player: byGames[0], value: byGames[0]?.games || 0},
   ];
 
-  return <div className="stats-page">
-    <Card className="stats-hero">
+  return <div className="stats-page stats-page-v2">
+    <Card className="stats-hero stats-hero-v2">
       <div>
-        <span className="stats-eyebrow"><Trophy size={15}/>היכל התהילה</span>
+        <span className="stats-eyebrow">תמונת מצב קבוצתית</span>
         <h1>המספרים של {g?.group.name}</h1>
         <p>רק משחקים שהסתיימו, שערים מאושרים וזכיית MVP אחת למשחק.</p>
       </div>
-      <div className="stats-hero-numbers"><span><strong>{rows.length}</strong>שחקנים פעילים</span><span><strong>{totalAppearances}</strong>סך הופעות</span></div>
+      <div className="stats-hero-numbers"><span><strong>{rows.length}</strong>שחקנים פעילים</span><span><strong>{totalAppearances}</strong>סך הופעות</span><span><strong>{byRating[0]?.rating.toFixed(1) || '—'}</strong>דירוג מוביל</span></div>
     </Card>
 
-    {(monthly || topGoals) && <section className="stats-awards-grid">
-      {monthly && <Card className="player-of-month"><div className="month-crown"><Crown size={30}/></div><div><span><CalendarDays size={15}/>שחקן החודש</span><h2>{monthly.first_name} {monthly.last_name}</h2><p>דירוגים, זכיות MVP והופעות במשחקים שהסתיימו</p></div><div className="month-score"><strong>{Math.round(Number(monthly.score))}</strong><span>נקודות</span></div></Card>}
-      {topGoals && <Card className="player-of-month goal-award"><div className="month-crown"><Goal size={30}/></div><div><span><CalendarDays size={15}/>מלך השערים החודשי</span><h2>{topGoals.first_name} {topGoals.last_name}</h2><p>רק שערים מאושרים נכנסים לחישוב</p></div><div className="month-score"><strong>{topGoals.goals}</strong><span>שערים</span></div></Card>}
+    <div className="segmented stats-view-tabs" role="tablist" aria-label="תקופת הסטטיסטיקות">
+      <button className={view === 'overview' ? 'active' : ''} onClick={() => setView('overview')}>סקירה</button>
+      <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>החודש</button>
+      <button className={view === 'all' ? 'active' : ''} onClick={() => setView('all')}>כל הזמנים</button>
+    </div>
+
+    {view === 'month' && (monthly || topGoals) && <section className="stats-awards-grid">
+      {monthly && <Card className="player-of-month"><div><span>שחקן החודש</span><h2>{monthly.first_name} {monthly.last_name}</h2><p>דירוגים, זכיות MVP והופעות במשחקים שהסתיימו</p></div><div className="month-score"><strong>{Math.round(Number(monthly.score))}</strong><span>נקודות</span></div></Card>}
+      {topGoals && <Card className="player-of-month goal-award"><div><span>מלך השערים החודשי</span><h2>{topGoals.first_name} {topGoals.last_name}</h2><p>רק שערים מאושרים נכנסים לחישוב</p></div><div className="month-score"><strong>{topGoals.goals}</strong><span>שערים</span></div></Card>}
     </section>}
 
-    <section className="stats-highlight-grid">{highlights.map(({title, player, value, Icon}, index) => <Card key={title} className={`podium-card rank-${index + 1}`}><div className="stats-highlight-icon"><Icon size={24}/></div><span>{title}</span><h2>{player ? fullName(player.profile) : '—'}</h2><strong>{value}</strong></Card>)}</section>
+    {view === 'overview' && <section className="stats-highlight-grid stats-highlight-grid-v2">{highlights.map(({title, player, value}, index) => <Card key={title} className={`podium-card rank-${index + 1}`}><b>{String(index + 1).padStart(2, '0')}</b><span>{title}</span><h2>{player ? fullName(player.profile) : '—'}</h2><strong>{value}</strong></Card>)}</section>}
 
-    <section className="stats-board-grid"><GoalBoard title={`שערי ${new Date().toLocaleDateString('he-IL', {month: 'long'})}`} rows={data?.monthlyGoals || []}/><GoalBoard title="שערים בכל הזמנים" rows={data?.allGoals || []}/></section>
+    {view === 'month' && <section className="stats-board-grid single"><GoalBoard title={`שערי ${new Date().toLocaleDateString('he-IL', {month: 'long'})}`} rows={data?.monthlyGoals || []}/></section>}
+    {view === 'all' && <section className="stats-board-grid single"><GoalBoard title="שערים בכל הזמנים" rows={data?.allGoals || []}/></section>}
 
-    <CleanSheetBoard rows={data?.cleanSheets || []}/>
+    {view === 'all' && <CleanSheetBoard rows={data?.cleanSheets || []}/>}
 
-    <Card className="stats-list-card">
-      <div className="section-title"><div><h2><Sparkles size={20}/>הישגים בולטים</h2><p>עד חמישה הישגים מובילים מוצגים בכל רגע.</p></div><Badge>מתעדכן אוטומטית</Badge></div>
-      <div className="achievement-grid">{achievementEntries.map(({player, achievement}) => <Link to={`/players/${player.id}`} key={`${player.id}-${achievement.key}`} className="achievement-card"><div>{achievement.icon}</div><section><strong>{achievement.title}</strong><span>{fullName(player.profile)}</span><small>{achievement.desc}</small></section><ShieldCheck size={18}/></Link>)}</div>
+    {view === 'overview' && <Card className="stats-list-card">
+      <div className="section-title"><div><h2>הישגים בולטים</h2><p>עד חמישה הישגים מובילים מוצגים בכל רגע.</p></div><Badge>מתעדכן אוטומטית</Badge></div>
+      <div className="achievement-grid">{achievementEntries.map(({player, achievement}, index) => <Link to={`/players/${player.id}`} key={`${player.id}-${achievement.key}`} className="achievement-card"><b>{String(index + 1).padStart(2, '0')}</b><section><strong>{achievement.title}</strong><span>{fullName(player.profile)}</span><small>{achievement.desc}</small></section></Link>)}</div>
       {!achievementEntries.length && <p className="empty-inline">ההישגים הראשונים ייפתחו אחרי המשחק הבא.</p>}
-    </Card>
+    </Card>}
 
-    <Card className="stats-list-card">
-      <div className="section-title"><div><h2><Trophy size={20}/>חמישיית המובילים</h2><p>הדירוג קודם; בשוויון מספר הדירוגים מכריע.</p></div><Badge>{Math.min(5, byRating.length)} שחקנים</Badge></div>
-      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index < 3 ? [<Trophy key="first"/>, <Medal key="second"/>, <Award key="third"/>][index] : index + 1}</b><div className="player-avatar">{player.profile?.first_name?.[0] || 'ש'}</div><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span><Star size={14}/>{player.rating.toFixed(2)}</span><span><Crown size={14}/>{player.mvp}</span><span><Users size={14}/>{player.games}</span></div></Link>)}</div>
+    {view === 'all' && <Card className="stats-list-card">
+      <div className="section-title"><div><h2>חמישיית המובילים</h2><p>הדירוג קודם; בשוויון מספר הדירוגים מכריע.</p></div><Badge>{Math.min(5, byRating.length)} שחקנים</Badge></div>
+      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.profile?.first_name?.[0] || 'ש'}</div><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span data-label="דירוג">{player.rating.toFixed(2)}</span><span data-label="MVP">{player.mvp}</span><span data-label="משחקים">{player.games}</span></div></Link>)}</div>
       {!byRating.length && <p className="empty-inline">עדיין אין שחקנים שקיבלו דירוג.</p>}
       <RatingLeadersDialog rows={byRating}/>
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -130,8 +138,8 @@ function GoalBoard({title, rows}: {title: string;rows: any[]}) {
   const scorers = rows.filter((player) => Number(player.goals) > 0);
   const visibleRows = scorers.slice(0, 5);
   return <Card className="stats-list-card">
-    <div className="section-title"><div><h2><Goal size={20}/>{title}</h2><p>מוצגים עד חמישת המבקיעים המובילים.</p></div><Badge>{visibleRows.length} מבקיעים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span><Goal size={14}/>{player.goals}</span></div></Link>)}</div>
+    <div className="section-title"><div><h2>{title}</h2><p>מוצגים עד חמישת המבקיעים המובילים.</p></div><Badge>{visibleRows.length} מבקיעים</Badge></div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span data-label="שערים">{player.goals}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים מאושרים בתקופה זו.</p>}
     <GoalScorersDialog title={title} rows={scorers}/>
   </Card>;
@@ -140,8 +148,8 @@ function GoalBoard({title, rows}: {title: string;rows: any[]}) {
 function CleanSheetBoard({rows}: {rows: any[]}) {
   const visibleRows = rows.slice(0, 3);
   return <Card className="stats-list-card clean-sheet-board">
-    <div className="section-title"><div><h2><ShieldCheck size={20}/>טופ 3 שוערים</h2><p>שערים נקיים ממשחקים שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{['🥇', '🥈', '🥉'][index]}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span><ShieldCheck size={14}/>{player.clean_sheets}</span></div></Link>)}</div>
+    <div className="section-title"><div><h2>טופ 3 שוערים</h2><p>שערים נקיים ממשחקים שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span data-label="שערים נקיים">{player.clean_sheets}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים נקיים ממשחקים שהסתיימו.</p>}
   </Card>;
 }

@@ -25,7 +25,7 @@ export default function AvailabilityPage(){
   if(error)throw error;return data||[];
  }});
  const selectedPoll=useMemo(()=>polls.find((p:any)=>p.id===selectedFromUrl)||polls.find((p:any)=>p.status==='open'&&!isPollPast(p.week_start))||polls.find((p:any)=>p.status==='open')||polls[0]||null,[polls,selectedFromUrl]);
- useEffect(()=>{if(selectedPoll&&selectedPoll.id!==selectedFromUrl)setParams({poll:selectedPoll.id},{replace:true})},[selectedPoll?.id]);
+ useEffect(()=>{if(selectedPoll&&selectedPoll.id!==selectedFromUrl)setParams({poll:selectedPoll.id},{replace:true})},[selectedPoll,selectedFromUrl,setParams]);
  const key=['weekly-poll-detail',selectedPoll?.id] as const;
  const {data,isLoading}=useQuery({queryKey:key,enabled:!!selectedPoll&&!!g,queryFn:async()=>{
   const [{data:votes,error:ve},{data:responses,error:re},{data:members,error:me}]=await Promise.all([

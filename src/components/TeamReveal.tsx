@@ -82,6 +82,8 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
       }
     }, 850);
     return clearTimers;
+  // `later` is recreated with the current motion preference; adding it would restart the reveal timer on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTeam, open, orderedTeams.length, phase, teamIndex, visiblePlayers]);
 
   const start = () => {

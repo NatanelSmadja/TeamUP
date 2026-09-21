@@ -6,7 +6,6 @@ import {
   CalendarDays,
   ChevronDown,
   Database,
-  History,
   Home,
   Layers3,
   LogOut,
@@ -14,6 +13,7 @@ import {
   Plus,
   Settings,
   Shield,
+  Star,
   UsersRound,
   UserRound,
   X,
@@ -27,6 +27,9 @@ import AppInstallBanner from './AppInstallBanner';
 import NotificationCenter from './NotificationCenter';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {syncExistingPushSubscription} from '../lib/pushNotifications';
+import RouteMotion from './RouteMotion';
+import MatchJourneyBar from './MatchJourneyBar';
+import ThemeToggle from './ThemeToggle';
 
 const base = [
   ['/', 'בית', Home],
@@ -35,11 +38,11 @@ const base = [
   ['/squad', 'סגל', UsersRound],
   ['/groups', 'הקבוצות שלי', Layers3],
   ['/stats', 'סטטיסטיקות', BarChart3],
+  ['/ratings', 'דירוגים', Star],
   ['/activity', 'פעילות', Activity],
-  ['/history', 'היסטוריה', History],
 ] as const;
 
-const primaryMobilePaths = ['/', '/matches', '/availability', '/squad'];
+const primaryMobilePaths = ['/', '/matches', '/stats', '/squad'];
 
 export default function Layout() {
   const {data: g, memberships, setActiveGroupId} = useGroup();
@@ -59,7 +62,7 @@ export default function Layout() {
     if (memberships.some((membership) => membership.group.id === requestedGroup)) setActiveGroupId(requestedGroup);
     params.delete('group');
     navigate({pathname: location.pathname, search: params.toString() ? `?${params}` : ''}, {replace: true});
-  }, [location.pathname, location.search, memberships, navigate]);
+  }, [location.pathname, location.search, memberships, navigate, setActiveGroupId]);
 
   const links = useMemo(() => {
     const next: any[] = [...base];
@@ -69,9 +72,14 @@ export default function Layout() {
     return next;
   }, [g, profile]);
 
-  const primaryMobile = links.filter(([to]) => primaryMobilePaths.includes(to));
+  const primaryMobile = primaryMobilePaths.map((path) => links.find(([to]) => to === path)).filter(Boolean) as any[];
   const moreMobile = links.filter(([to]) => !primaryMobilePaths.includes(to));
   const moreIsActive = moreMobile.some(([to]) => location.pathname === to || location.pathname.startsWith(`${to}/`));
+  const navSections = [
+    {label: 'המגרש', paths: ['/', '/matches', '/availability']},
+    {label: 'הקבוצה', paths: ['/squad', '/stats', '/ratings', '/activity', '/groups']},
+    {label: 'ניהול', paths: ['/admin', '/group-settings', '/system-admin']},
+  ].map((section) => ({...section, links: links.filter(([to]) => section.paths.includes(to))})).filter((section) => section.links.length);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -99,16 +107,19 @@ export default function Layout() {
           <span><img src="/brand/teamup-logo-128.png" alt="" /></span>
           <div>
             <strong>TEAMUP</strong>
-            <small>Multi‑Club Platform</small>
+            <small>קבוצות, משחקים ואנשים</small>
           </div>
         </div>
-        <nav>
-          {links.map(([to, label, Icon]) => (
-            <NavLink key={to} to={to} end={to === '/'} className={({isActive}) => cn('side-link', isActive && 'active')}>
-              <Icon size={20} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+        <nav aria-label="ניווט ראשי">
+          {navSections.map((section) => <section className="sidebar-nav-section" key={section.label}>
+            <small>{section.label}</small>
+            {section.links.map(([to, label, Icon]) => (
+              <NavLink key={to} to={to} end={to === '/'} className={({isActive}) => cn('side-link', isActive && 'active')}>
+                <Icon size={19} />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </section>)}
         </nav>
         <div className="sidebar-profile">
           <NavLink to="/profile">
@@ -124,7 +135,7 @@ export default function Layout() {
       <div className="content-shell">
         <header className="desktop-topbar">
           <div>
-            <p>TEAMUP CLUB</p>
+            <p>הקבוצה הפעילה</p>
             <div className="topbar-group-row">
               <span className="group-color-dot" style={{background: g?.group.theme_color || '#2563eb'}} />
               <h2>{g?.group.name || 'הקבוצה שלי'}</h2>
@@ -140,6 +151,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="topbar-actions">
+            <ThemeToggle inline />
             <NotificationCenter />
             <NavLink to="/profile" className="profile-chip">
               <UserRound size={19} />
@@ -158,6 +170,7 @@ export default function Layout() {
             {memberships.length > 1 && <ChevronDown size={18} className={cn(groupOpen && 'rotate-180')} />}
           </button>
           <div className="mobile-top-actions">
+            <ThemeToggle inline />
             <NotificationCenter />
             <NavLink to="/profile" className="mobile-avatar" aria-label="פרופיל">
               {profile?.first_name?.trim()?.slice(0, 1) || <UserRound size={18} />}
@@ -184,8 +197,11 @@ export default function Layout() {
         </header>
 
         <AppInstallBanner />
+        <MatchJourneyBar />
         <main className="page-wrap">
-          <Outlet />
+          <RouteMotion routeKey={location.pathname}>
+            <Outlet />
+          </RouteMotion>
         </main>
         {canManage(g) && (
           <div className="quick-fab">
@@ -252,17 +268,22 @@ export default function Layout() {
           </section>
         </div>
       )}
+
     </div>
   );
 }
 
 function mobileDescription(path: string) {
   const descriptions: Record<string, string> = {
+    '/': 'המשחק הבא והמשימות שלך',
     '/matches': 'המשחקים הקרובים שלך',
+    '/availability': 'בחירת הימים שמתאימים לך',
+    '/squad': 'כל השחקנים והפרופילים',
     '/groups': 'מעבר וניהול קבוצות',
     '/stats': 'דירוגים, הישגים ומובילים',
+    '/ratings': 'דירוג שחקנים ובחירת MVP',
+    '/profile': 'פרטים, עמדות והתראות',
     '/activity': 'כל מה שקרה בקבוצה',
-    '/history': 'משחקים קודמים ותוצאות',
     '/admin': 'משחקים, סקרים ופעולות',
     '/group-settings': 'חברים, הזמנות והרשאות',
     '/system-admin': 'ניהול פלטפורמת TEAMUP',

@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Archive, Check, ChevronLeft, Clipboard, History, KeyRound, Palette, RefreshCw, Search, Settings, ShieldCheck, Trash2, UserPlus, UserRound, Users, X} from 'lucide-react';
 import {toast} from 'sonner';
@@ -68,6 +69,8 @@ export default function GroupSettingsPage() {
             setF(next);
             setSavedSettings(JSON.stringify(next));
         }
+    // Settings should reset only when switching groups, not after every query refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [g?.group.id]);
     const hasUnsavedChanges = savedSettings !== '' && JSON.stringify(f) !== savedSettings;
     const requestsKey = ['join-requests', g?.group.id];
@@ -576,7 +579,7 @@ export default function GroupSettingsPage() {
                 const isActive = selectedMember.status === 'active';
                 const isAdmin = selectedMember.role === 'admin';
                 const positions = (selectedMember.profiles?.preferred_positions || [selectedMember.profiles?.preferred_position]).filter(Boolean).map(positionLabel).join(' · ');
-                return <div className="member-modal-layer" role="dialog" aria-modal="true" aria-labelledby="member-modal-title" onMouseDown={(event) => event.target === event.currentTarget && setSelectedMemberId(null)}>
+                return createPortal(<div className="member-modal-layer" role="dialog" aria-modal="true" aria-labelledby="member-modal-title" onMouseDown={(event) => event.target === event.currentTarget && setSelectedMemberId(null)}>
                     <Card className="member-management-modal">
                         <div className="section-title">
                             <div><h2 id="member-modal-title"><UserRound/>כרטיס שחקן</h2><p>פרטים ופעולות ניהול בקבוצה הנוכחית</p></div>
@@ -598,7 +601,7 @@ export default function GroupSettingsPage() {
                             </> : <Button disabled={updateMember.isPending} onClick={() => updateMember.mutate({memberId: selectedMember.id, action: 'restore'})}><UserPlus size={17}/>שחזור לקבוצה</Button>}
                         </div>}
                     </Card>
-                </div>;
+                </div>, document.body);
             })()}
         </div>
     );

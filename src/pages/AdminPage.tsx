@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle, Trash2, Unlock, Users, UserMinus, UserPlus} from 'lucide-react';
+import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle, Trash2, Unlock, UserMinus, UserPlus} from 'lucide-react';
 import {Link, useNavigate} from 'react-router-dom';
 import {toast} from 'sonner';
 import {Badge, Button, Card, FieldHelp, Input, Tooltip} from '../components/ui';
@@ -248,8 +248,8 @@ export default function AdminPage() {
   };
   if (!allowed) return <Card>אין לך הרשאת ניהול.</Card>;
   return (
-    <div className="space-y-5">
-      <div className="page-heading">
+    <div className="admin-page space-y-5">
+      <div className="page-heading admin-page-heading">
         <div>
           <p>שליטה במשחקים, סקרים, הרשאות וחברי הקבוצה</p>
           <h1>מרכז ניהול</h1>
@@ -277,6 +277,11 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+      <section className="admin-command-summary" aria-label="מצב הקבוצה">
+        {canManageMatches && <button onClick={() => setTab('matches')}><span>משחקים פעילים</span><strong>{matches.filter((match) => !['completed', 'cancelled'].includes(match.status)).length}</strong><small>פתיחה, הרשמה וחלוקה</small></button>}
+        {canManagePolls && <button onClick={() => setTab('polls')}><span>סקרים פתוחים</span><strong>{polls.filter((poll: any) => poll.status === 'open' && !isPollPast(poll.week_start)).length}</strong><small>זמינות לשבוע הקרוב</small></button>}
+        {canManageMembers && <button onClick={() => setTab('members')}><span>שחקנים פעילים</span><strong>{members.filter((member: any) => member.status === 'active').length}</strong><small>חברים והרשאות</small></button>}
+      </section>
       {tab === 'ratings' && canViewRatingAudit && g && <RatingAuditPanel groupId={g.group.id}/>}
       {tab === 'matches' && canManageMatches && (
         <>
@@ -287,8 +292,8 @@ export default function AdminPage() {
             </Button>
           )}
           {open && canCreateMatch && (
-            <Card className="form-card">
-              <div>
+            <Card className="form-card match-create-form">
+              <div className="form-card-header">
                 <h2>פתיחת הרשמה חדשה</h2>
                 <p>אפשר לפתוח כמה משחקים באותו שבוע. כל משחק נשמר ומופיע בנפרד.</p>
               </div>
@@ -301,7 +306,7 @@ export default function AdminPage() {
                   <FieldHelp title="מיקום">שם המתחם או המגרש.</FieldHelp>
                   <Input value={f.location} onChange={(e) => setF({...f, location: e.target.value})} />
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 match-date-field">
                   <FieldHelp title="באיזה יום משחקים?">בחירת יום ממלאת את התאריך הקרוב אוטומטית.</FieldHelp>
                   <div className="weekday-picker">
                     {dayNames.map((name, i) => (
@@ -331,7 +336,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              <div>
+              <div className="match-planning-section">
                 <h3 className="field-group-title">תכנון שחקנים וקבוצות</h3>
                 <div className="form-grid triple">
                   <div>
@@ -348,7 +353,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              <Button disabled={!f.match_date || !Number.isInteger(Number(f.team_count)) || Number(f.team_count) < 2 || create.isPending} onClick={() => create.mutate()}>
+              <Button className="form-submit-button" disabled={!f.match_date || !Number.isInteger(Number(f.team_count)) || Number(f.team_count) < 2 || create.isPending} onClick={() => create.mutate()}>
                 פתיחת הרשמה
               </Button>
             </Card>
@@ -418,8 +423,8 @@ export default function AdminPage() {
             סקר חדש
           </Button>
           {pollOpen && (
-            <Card className="form-card">
-              <div>
+            <Card className="form-card poll-create-form">
+              <div className="form-card-header">
                 <h2>פתיחת סקר חדש</h2>
                 <p>אפשר ליצור כמה סקרים באותו שבוע, למשל סקר נפרד לכל משחק מתוכנן.</p>
               </div>
@@ -437,7 +442,7 @@ export default function AdminPage() {
                   <Input value={pollForm.description} onChange={(e) => setPollForm({...pollForm, description: e.target.value})} />
                 </div>
               </div>
-              <Button disabled={createPoll.isPending || !pollForm.week_start} onClick={() => createPoll.mutate()}>
+              <Button className="form-submit-button" disabled={createPoll.isPending || !pollForm.week_start} onClick={() => createPoll.mutate()}>
                 פתיחת הסקר
               </Button>
             </Card>

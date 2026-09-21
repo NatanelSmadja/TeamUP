@@ -6,7 +6,18 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#07101f" />
+    <meta name="theme-color" content="#f5f2ed" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem('teamup_theme');
+        const theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#15121f' : '#f5f2ed';
+      })();
+    </script>
     <meta name="description" content="ניהול משחקי כדורגל לחברים" />
     <meta name="application-name" content="TEAMUP" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
