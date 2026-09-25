@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import { useState } from "react";
 import SystemPresence from '../components/SystemPresence';
 import { createPortal } from "react-dom";
@@ -198,7 +199,7 @@ export default function SystemAdminPage() {
               return <div className={`system-user-row system-user-clickable ${archived ? "is-archived" : ""}`} key={user.user_id}
                           role="button" tabIndex={0} onClick={() => setSelectedUserId(user.user_id)}
                           onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && setSelectedUserId(user.user_id)}>
-                <div className="player-avatar">{user.first_name?.[0] || "ש"}</div>
+                <PlayerAvatar profile={user} className="player-avatar"/>
                 <div className="system-user-details">
                   <strong>{name}</strong>
                   <span>{user.is_system_admin ? "אדמין מערכת" : archived ? "בארכיון" : "משתמש פעיל"} · {user.group_count} קבוצות</span>
@@ -282,7 +283,7 @@ function SystemPlayerCard({data,allGroups,assigning,unassigning,onAssign,onUnass
   const selected=availableGroups.some((group:any)=>group.group_id===selectedGroup)?selectedGroup:availableGroups[0]?.group_id||'';
   return <div className="system-player-card">
     <section className="system-player-hero">
-      {p.avatar_url?<img src={p.avatar_url} alt="" className="system-player-avatar"/>:<div className="system-player-avatar">{p.first_name?.[0]||"ש"}</div>}
+      <PlayerAvatar profile={p} className="system-player-avatar"/>
       <div><div className="system-group-name"><h2>{name}</h2><Badge>{p.lifecycle_status==='archived'?'בארכיון':p.is_system_admin?'אדמין מערכת':'פעיל'}</Badge></div><p>{positions.join(' · ')||'ללא עמדה'} · רגל {footLabel(p.preferred_foot)}</p><small>{p.birth_date?`תאריך לידה ${new Date(`${p.birth_date}T12:00:00`).toLocaleDateString('he-IL')} · `:''}הצטרף למערכת ב־{new Date(p.created_at).toLocaleDateString('he-IL')}</small></div>
     </section>
     <div className="system-player-stats">

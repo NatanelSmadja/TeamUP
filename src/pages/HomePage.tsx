@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import {useQuery} from '@tanstack/react-query';
 import {Link} from 'react-router-dom';
 import {Activity, ArrowLeft, CalendarDays, CheckCircle2, Clock, Crown, Goal, MapPin, ShieldCheck, Star, Trophy, Users} from 'lucide-react';
@@ -70,11 +71,11 @@ export default function HomePage() {
         me: meIndex >= 0 ? players[meIndex] : null,
         meRank: meIndex >= 0 ? meIndex + 1 : null,
         goals: Number(goalStats?.[0]?.total_goals || 0),
-        goalLeaders: (goalLeaders || []).map((player: any) => ({...player, goals: Number(player.goals || 0)})).filter((player: any) => player.goals > 0),
+        goalLeaders: (goalLeaders || []).map((player: any) => ({...player, avatar_url: players.find(member => member.user_id === player.user_id)?.profiles?.avatar_url, goals: Number(player.goals || 0)})).filter((player: any) => player.goals > 0),
       };
     },
   });
-  useRealtimeInvalidation(`v3home-${g?.group.id}`, ['matches', 'match_registrations', 'match_guests', 'weekly_polls', 'availability_votes', 'weekly_poll_responses', 'activity_events', 'player_public_stats', 'goal_events'], [key], !!g);
+  useRealtimeInvalidation(`v3home-${g?.group.id}`, ['profiles', 'matches', 'match_registrations', 'match_guests', 'weekly_polls', 'availability_votes', 'weekly_poll_responses', 'activity_events', 'player_public_stats', 'goal_events'], [key], !!g);
 
   const featured = data?.matches[0];
   const featuredRegs = featured ? data?.regsByMatch[featured.id] || [] : [];
@@ -143,7 +144,7 @@ export default function HomePage() {
             <div className="home-chart-title"><div><Goal size={20}/><span><small>כל הזמנים</small><strong>כובשים מובילים</strong></span></div><Badge>5 מובילים</Badge></div>
             <div className="home-chart-bars">
               {data?.goalLeaders.slice(0, 5).map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className={index === 0 ? 'leader' : ''}>
-                <b>{index + 1}</b><span className="player-avatar sm">{player.first_name?.[0] || 'ש'}</span><span className="home-chart-player"><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><i><em style={{width: `${Math.max(8, player.goals / maxGoals * 100)}%`}}/></i></span><span className="home-chart-value"><strong>{player.goals}</strong><small>שערים</small></span>
+                <b>{index + 1}</b><PlayerAvatar profile={player} className="player-avatar sm"/><span className="home-chart-player"><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><i><em style={{width: `${Math.max(8, player.goals / maxGoals * 100)}%`}}/></i></span><span className="home-chart-value"><strong>{player.goals}</strong><small>שערים</small></span>
               </Link>)}
               {!data?.goalLeaders.length && <div className="home-chart-empty"><Goal size={25}/><span><strong>עוד אין כובשים בטבלה</strong><small>שערים מאושרים יתחילו לבנות את הגרף.</small></span></div>}
             </div>

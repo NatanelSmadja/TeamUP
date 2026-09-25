@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import GoalScorersDialog from '../components/GoalScorersDialog';
 import RatingLeadersDialog from '../components/RatingLeadersDialog';
 import {useAuth} from '../contexts/AuthContext';
@@ -40,6 +41,8 @@ export default function StatsPage() {
       const firstError = membersResult.error || statsResult.error || monthlyResult.error || monthlyGoalsResult.error || allGoalsResult.error || cleanSheetsResult.error;
       if (firstError) throw firstError;
       const statsMap = new Map((statsResult.data || []).map((row: any) => [row.user_id, row]));
+      const avatarMap = new Map((membersResult.data || []).map((row: any) => [row.user_id, row.profiles?.avatar_url]));
+      const withAvatars = (rows: any[] | null) => (rows || []).map(row => ({...row, avatar_url: avatarMap.get(row.user_id)}));
       const rows = (membersResult.data || []).map((member: any) => {
         const stats: any = statsMap.get(member.user_id);
         return {
@@ -54,16 +57,16 @@ export default function StatsPage() {
       return {
         rows,
         monthly: monthlyResult.data?.[0] || null,
-        monthlyGoals: monthlyGoalsResult.data || [],
-        allGoals: allGoalsResult.data || [],
-        cleanSheets: cleanSheetsResult.data || [],
+        monthlyGoals: withAvatars(monthlyGoalsResult.data),
+        allGoals: withAvatars(allGoalsResult.data),
+        cleanSheets: withAvatars(cleanSheetsResult.data),
       };
     },
   });
 
   useRealtimeInvalidation(
     `v2stats-${g?.group.id}`,
-    ['player_public_stats', 'match_registrations', 'player_ratings', 'mvp_votes', 'goal_events', 'match_clean_sheet_events', 'matches'],
+    ['profiles', 'player_public_stats', 'match_registrations', 'player_ratings', 'mvp_votes', 'goal_events', 'match_clean_sheet_events', 'matches'],
     [key],
     !!g,
   );
@@ -126,7 +129,7 @@ export default function StatsPage() {
 
     {view === 'all' && <Card className="stats-list-card">
       <div className="section-title"><div><h2>חמישיית המובילים</h2><p>הדירוג קודם; בשוויון מספר הדירוגים מכריע.</p></div><Badge>{Math.min(5, byRating.length)} שחקנים</Badge></div>
-      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.profile?.first_name?.[0] || 'ש'}</div><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span data-label="דירוג">{player.rating.toFixed(2)}</span><span data-label="MVP">{player.mvp}</span><span data-label="משחקים">{player.games}</span></div></Link>)}</div>
+      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player.profile}/><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span data-label="דירוג">{player.rating.toFixed(2)}</span><span data-label="MVP">{player.mvp}</span><span data-label="משחקים">{player.games}</span></div></Link>)}</div>
       {!byRating.length && <p className="empty-inline">עדיין אין שחקנים שקיבלו דירוג.</p>}
       <RatingLeadersDialog rows={byRating}/>
     </Card>}
@@ -139,7 +142,7 @@ function GoalBoard({title, rows}: {title: string;rows: any[]}) {
   const visibleRows = scorers.slice(0, 5);
   return <Card className="stats-list-card">
     <div className="section-title"><div><h2>{title}</h2><p>מוצגים עד חמישת המבקיעים המובילים.</p></div><Badge>{visibleRows.length} מבקיעים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span data-label="שערים">{player.goals}</span></div></Link>)}</div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player} className="player-avatar"/><div><strong className={player.user_id === user?.id ? 'goal-scorer-me' : undefined}>{player.first_name} {player.last_name}</strong><span>שערים מאושרים בלבד</span></div><div className="leader-stats"><span data-label="שערים">{player.goals}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים מאושרים בתקופה זו.</p>}
     <GoalScorersDialog title={title} rows={scorers}/>
   </Card>;
@@ -149,7 +152,7 @@ function CleanSheetBoard({rows}: {rows: any[]}) {
   const visibleRows = rows.slice(0, 3);
   return <Card className="stats-list-card clean-sheet-board">
     <div className="section-title"><div><h2>טופ 3 שוערים</h2><p>שערים נקיים ממשחקים שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><div className="player-avatar">{player.first_name?.[0] || 'ש'}</div><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span data-label="שערים נקיים">{player.clean_sheets}</span></div></Link>)}</div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player} className="player-avatar"/><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span data-label="שערים נקיים">{player.clean_sheets}</span></div></Link>)}</div>
     {!visibleRows.length && <p className="empty-inline">עדיין אין שערים נקיים ממשחקים שהסתיימו.</p>}
   </Card>;
 }

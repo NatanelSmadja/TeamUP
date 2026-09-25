@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import {useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -509,7 +510,7 @@ export default function GroupSettingsPage() {
                                 const positions = (member.profiles?.preferred_positions || [member.profiles?.preferred_position]).filter(Boolean).map(positionLabel).join(' · ');
                                 return (
                                     <button key={member.id} className={`member-directory-row ${!isActive ? 'is-archived' : ''}`} onClick={() => setSelectedMemberId(member.id)}>
-                                        <div className="player-avatar">{member.profiles?.first_name?.[0] || 'ש'}</div>
+                                        <PlayerAvatar profile={member.profiles} className="player-avatar"/>
                                         <div className="member-directory-name"><strong>{name}</strong><span>{positions || 'ללא עמדה מוגדרת'}</span></div>
                                         <Badge className={isAdmin ? 'member-role-admin' : isActive ? 'member-role-active' : 'member-role-archived'}>{isAdmin ? 'מנהל' : isActive ? 'פעיל' : 'בארכיון'}</Badge>
                                         <span className="member-joined">הצטרף {new Date(member.joined_at).toLocaleDateString('he-IL')}</span>

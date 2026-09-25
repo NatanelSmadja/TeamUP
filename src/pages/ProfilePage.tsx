@@ -7,6 +7,7 @@ import {useGroup} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
 import {Bell, ChevronLeft, Download, RefreshCw} from 'lucide-react';
 import {currentPushState, disablePushNotifications, enablePushNotifications, type PushState} from '../lib/pushNotifications';
+import ProfileAvatarEditor from '../components/ProfileAvatarEditor';
 
 const positions = [
   ['goalkeeper', 'שוער'],
@@ -31,17 +32,6 @@ export default function ProfilePage() {
   const [f, setF] = useState({first_name: '', last_name: '', birth_date: '', preferred_positions: ['utility'] as string[], preferred_foot: 'right'});
 
   useEffect(() => {
-    if (!profile) return;
-    setF({
-      first_name: profile.first_name || '',
-      last_name: profile.last_name || '',
-      birth_date: profile.birth_date || '',
-      preferred_positions: (profile as any).preferred_positions?.length ? (profile as any).preferred_positions : [profile.preferred_position || 'utility'],
-      preferred_foot: profile.preferred_foot || 'right',
-    });
-  }, [profile]);
-
-  useEffect(() => {
     const h = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e as InstallPromptEvent);
@@ -61,6 +51,8 @@ export default function ProfilePage() {
     preferred_positions: (profile as any).preferred_positions?.length ? (profile as any).preferred_positions : [profile.preferred_position || 'utility'],
     preferred_foot: profile.preferred_foot || 'right',
   }) : '', [profile]);
+  // Updating only the photo must not discard unsaved edits to personal details.
+  useEffect(() => {if (savedValues) setF(JSON.parse(savedValues));}, [savedValues]);
   const dirty = !!profile && JSON.stringify(f) !== savedValues;
   const displayName = [f.first_name.trim(), f.last_name.trim()].filter(Boolean).join(' ') || 'השם שלך';
   const shirtName = f.first_name.trim() || 'שחקן';
@@ -172,6 +164,7 @@ export default function ProfilePage() {
 
       <div className="profile-workspace">
         <Card className="form-card profile-form-card profile-editor-card">
+          {profile && <ProfileAvatarEditor key={profile.id} profile={profile} onSaved={refreshProfile}/>}
           <header className="profile-section-heading">
             <div><span>01</span><h2>פרטים אישיים</h2></div>
             <p>המידע שמופיע בהרשמות, בחלוקת קבוצות ובדירוגים.</p>

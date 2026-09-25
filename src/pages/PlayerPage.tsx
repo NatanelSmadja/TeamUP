@@ -9,6 +9,7 @@ import {supabase} from '../lib/supabase';
 import {footLabel, fullName, positionLabel} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {PlayerBannerDialog} from '../components/PlayerBannerDialog';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 export default function PlayerPage() {
   const {id} = useParams();
@@ -50,7 +51,7 @@ export default function PlayerPage() {
 
   useRealtimeInvalidation(
     `player-stats-${id}-${groupSession?.group.id}`,
-    ['goal_events', 'player_public_stats', 'player_ratings', 'mvp_votes', 'match_registrations', 'match_clean_sheet_events', 'matches'],
+    ['profiles', 'goal_events', 'player_public_stats', 'player_ratings', 'mvp_votes', 'match_registrations', 'match_clean_sheet_events', 'matches'],
     [['player-card', id, groupSession?.group.id]],
     !!id && !!groupSession,
   );
@@ -90,6 +91,7 @@ export default function PlayerPage() {
       <section className="player-profile-hero-v2">
         <div className="player-profile-copy">
           <span className="player-profile-kicker">כרטיס שחקן</span>
+          <PlayerAvatar profile={data.profile} className="player-profile-photo"/>
           <h1>{name}</h1>
           <p>{groupName}</p>
           <div className="player-profile-tags">

@@ -5,6 +5,7 @@ import type {Match} from '../types';
 import {positionLabel} from '../lib/utils';
 import {Badge, Button} from './ui';
 import {PlayerBalanceRating, TeamRatingSummary} from './TeamRatingSummary';
+import PlayerAvatar from './PlayerAvatar';
 
 type RevealPhase = 'intro' | 'locking' | 'team' | 'final';
 
@@ -145,7 +146,7 @@ export default function TeamReveal({match, teams, balance, showRatings = false, 
           <TeamRatingSummary team={currentTeam} teamSize={match.team_size} showRatings={showRatings}/>
           <div className="team-reveal-lineup">
             {(currentTeam.team_players || []).map((player: any, index: number) => <article className={index < visiblePlayers ? 'is-visible' : ''} key={player.id}>
-              <span className="team-reveal-avatar">{playerName(player)[0]}</span>
+              <PlayerAvatar profile={player.profiles} name={playerName(player)} className="team-reveal-avatar"/>
               <div><strong>{playerName(player)} <PlayerBalanceRating player={player} visible={showRatings}/></strong><small>{positionLabel(playerPosition(player))}{player.guest ? ' · אורח' : ''}</small></div>
               <b>{index + 1}</b>
             </article>)}
@@ -165,7 +166,7 @@ export default function TeamReveal({match, teams, balance, showRatings = false, 
               return <article key={team.id} style={{'--team-color': teamColor} as React.CSSProperties}>
                 <header><h2>{teamNames[team.color_key] || team.name}</h2><Badge>{team.team_players?.length || 0} שחקנים</Badge></header>
                 <TeamRatingSummary team={team} teamSize={match.team_size} showRatings={showRatings}/>
-                <div>{(team.team_players || []).map((player: any, index: number) => <span key={player.id}><i>{playerName(player)[0]}</i><strong>{playerName(player)} <PlayerBalanceRating player={player} visible={showRatings}/></strong>{player.guest && <small>אורח</small>}<b>{index + 1}</b></span>)}</div>
+                <div>{(team.team_players || []).map((player: any, index: number) => <span key={player.id}><i><PlayerAvatar profile={player.profiles} name={playerName(player)} className="avatar-fill"/></i><strong>{playerName(player)} <PlayerBalanceRating player={player} visible={showRatings}/></strong>{player.guest && <small>אורח</small>}<b>{index + 1}</b></span>)}</div>
               </article>;
             })}
           </div>

@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import {useEffect, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {BellRing, CalendarCheck, Copy, Edit3, ExternalLink, Lock, Plus, Shuffle, Trash2, Unlock, UserMinus, UserPlus} from 'lucide-react';
@@ -525,7 +526,7 @@ export default function AdminPage() {
           {members.map((m: any) => (
             <Card key={m.id} className={m.status !== 'active' ? 'member-inactive' : ''}>
               <div className="member-head">
-                <div className="player-avatar">{m.profiles?.first_name?.[0] || 'ש'}</div>
+                <PlayerAvatar profile={m.profiles} className="player-avatar"/>
                 <div>
                   <h2>{fullName(m.profiles)}</h2>
                   <p>{m.role === 'admin' ? 'מנהל קבוצה' : m.role === 'moderator' ? 'מורשה לפי הרשאות' : m.status === 'active' ? 'חבר פעיל' : 'הוסר מהקבוצה'}</p>

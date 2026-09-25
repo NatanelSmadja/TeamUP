@@ -1,3 +1,4 @@
+import PlayerAvatar from '../components/PlayerAvatar';
 import {useEffect, useMemo, useState, type CSSProperties} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Check, ChevronLeft, ShieldCheck, Star} from 'lucide-react';
@@ -10,7 +11,7 @@ import {supabase} from '../lib/supabase';
 import {fullName, positionLabel} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 
-type BoardRow = {id: string;first_name: string;last_name: string;avg_rating: number;rating_count: number;mvp_count: number};
+type BoardRow = {id: string;first_name: string;last_name: string;avatar_url?: string | null;avg_rating: number;rating_count: number;mvp_count: number};
 type Player = {user_id: string;profiles: any};
 type RatingMatch = {id: string;title: string;match_date: string;start_time?: string;ratings_closes_at?: string | null};
 const scoreLabels: Record<number, string> = {1: 'חלש', 2: 'מתחת לממוצע', 3: 'טוב', 4: 'טוב מאוד', 5: 'מצוין'};
@@ -76,7 +77,7 @@ export default function RatingsPage() {
       if (error) throw error;
       const ids = (registrations || []).map((registration: any) => registration.user_id);
       if (!ids.length) return [];
-      const {data: profiles, error: profileError} = await supabase.from('profiles').select('id,first_name,last_name,preferred_positions,preferred_position').in('id', ids);
+      const {data: profiles, error: profileError} = await supabase.from('profiles').select('id,first_name,last_name,preferred_positions,preferred_position,avatar_url').in('id', ids);
       if (profileError) throw profileError;
       const profileMap = new Map((profiles || []).map((profile: any) => [profile.id, profile]));
       return ids.map((id: string) => ({user_id: id, profiles: profileMap.get(id)})).filter((player) => player.profiles) as Player[];
@@ -105,7 +106,7 @@ export default function RatingsPage() {
 
   useRealtimeInvalidation(
     `ratings-${groupSession?.group.id}`,
-    ['player_ratings', 'mvp_votes', 'player_public_stats', 'matches'],
+    ['profiles', 'player_ratings', 'mvp_votes', 'player_public_stats', 'matches'],
     [['ratings', groupSession?.group.id], ['open-ratings', groupSession?.group.id, user?.id], ['my-ratings', active?.id, user?.id]],
     !!groupSession,
   );
@@ -159,7 +160,7 @@ export default function RatingsPage() {
             return <article key={player.user_id} className={`rating-player-card ${value ? 'rated' : ''}`}>
               <div className="rating-player-head">
                 <span className="rating-card-index">{String(index + 1).padStart(2, '0')}</span>
-                <div className="player-avatar">{player.profiles.first_name?.[0] || 'ש'}</div>
+                <PlayerAvatar profile={player.profiles} className="player-avatar"/>
                 <div><h3>{fullName(player.profiles)}</h3><p>{playerPositions}</p></div>
                 {value && <span className="rating-complete-mark"><Check size={15}/></span>}
               </div>
@@ -192,7 +193,7 @@ export default function RatingsPage() {
           const name = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'שחקן';
           return <Link to={`/players/${player.id}`} key={player.id} className={`rating-board-row rank-${index + 1}`}>
             <div className="rating-rank-mark" aria-label={`מקום ${index + 1}`}>{index + 1}</div>
-            <div className="rating-board-avatar" aria-hidden="true">{player.first_name?.[0] || 'ש'}</div>
+            <PlayerAvatar profile={player} className="rating-board-avatar"/>
             <div className="rating-board-player"><h3>{name}{player.id === user?.id && <small>אני</small>}</h3><div><span>{player.rating_count} דירוגים</span><span>{player.mvp_count} זכיות MVP</span></div></div>
             <div className="rating-board-score"><small>ממוצע</small><strong>{player.avg_rating.toFixed(1)}</strong></div>
             <ChevronLeft className="rating-board-arrow" size={18}/>

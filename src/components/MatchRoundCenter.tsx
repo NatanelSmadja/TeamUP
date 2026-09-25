@@ -1,3 +1,4 @@
+import PlayerAvatar from './PlayerAvatar';
 import {useMemo,useState} from 'react';
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {Minus,Plus,ShieldCheck,Trophy} from 'lucide-react';
@@ -138,7 +139,7 @@ export function MatchRoundCenter({match,registrations,teams}:{match:Match;regist
    {cleanSheetRows.length?<div className="clean-sheet-list">{cleanSheetRows.map(row=>{
     const team=teams.find(item=>item.id===row.teamId);
     return <div className="clean-sheet-row" key={row.participantId}>
-     <div className="player-avatar sm">{row.name[0]||'ש'}</div>
+     <PlayerAvatar profile={registrations.find(player => `user:${player.user_id}` === row.participantId)?.profiles} name={row.name} className="player-avatar sm"/>
      <span><strong>{row.name}</strong><small>{team?teamName(team):'קבוצה'}</small></span>
      <b>{row.count}</b>
      {canManageResults&&started&&match.status!=='cancelled'&&<Button variant="secondary" disabled={busy} title="ביטול השער הנקי האחרון" onClick={()=>removeCleanSheet.mutate(row.latestId)}><Minus size={16}/></Button>}

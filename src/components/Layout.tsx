@@ -23,6 +23,7 @@ import {NavLink, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {cn} from '../lib/utils';
 import {useGroup, canManage, isSystemAdmin} from '../hooks/useGroup';
 import {useAuth} from '../contexts/AuthContext';
+import PlayerAvatar from './PlayerAvatar';
 import AppInstallBanner from './AppInstallBanner';
 import NotificationCenter from './NotificationCenter';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
@@ -173,7 +174,7 @@ export default function Layout() {
             <ThemeToggle inline />
             <NotificationCenter />
             <NavLink to="/profile" className="mobile-avatar" aria-label="פרופיל">
-              {profile?.first_name?.trim()?.slice(0, 1) || <UserRound size={18} />}
+              <PlayerAvatar profile={profile} className="avatar-fill"/>
             </NavLink>
           </div>
           {groupOpen && memberships.length > 1 && (
@@ -243,7 +244,7 @@ export default function Layout() {
             </div>
             <div className="mobile-sheet-user">
               <NavLink to="/profile">
-                <span className="mobile-sheet-avatar">{profile?.first_name?.trim()?.slice(0, 1) || 'U'}</span>
+                <PlayerAvatar profile={profile} className="mobile-sheet-avatar"/>
                 <span>
                   <strong>{profile?.first_name || 'הפרופיל שלי'}</strong>
                   <small>פרופיל, עמדות והגדרות</small>
