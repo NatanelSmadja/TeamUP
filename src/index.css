@@ -8494,6 +8494,28 @@ details[open] > .rating-audit-rater-body,details[open] > div { animation:motion-
 .regeneration-preview footer .tap { flex: 1; min-width: min(220px, 100%) }
 
 .avatar-frame { display: inline-grid; place-items: center; overflow: hidden; flex-shrink: 0 }
+.resource-usage { min-width: 0 }
+.resource-usage h2 { font-size: 20px; font-weight: 800 }
+.resource-usage p, .resource-usage small { display: block; margin: 10px 0; line-height: 1.7; overflow-wrap: anywhere }
+.resource-usage small { color: var(--muted) }
+.resource-usage a { color: var(--primary, #6d28d9); text-decoration: underline; text-underline-offset: 3px }
+.resource-usage-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px }
+.resource-usage-heading button { display: inline-flex; align-items: center; gap: 8px }
+.resource-usage-notice { padding: 12px; border: 1px solid #b7791f; border-radius: 12px; background: #fff8e6; color: #714b0d }
+.resource-usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 14px; margin: 16px 0 }
+.resource-usage-meter { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 16px }
+.resource-usage-meter h3 { margin-bottom: 12px; font-size: 16px; font-weight: 800 }
+.resource-usage-meter strong { display: block; font-size: 19px }
+.resource-usage-meter progress { --usage-bar: #16734a; width: 100%; height: 12px; margin-top: 14px; accent-color: var(--usage-bar); appearance: none; border: 0; border-radius: 8px; overflow: hidden; background: #e2e8f0 }
+.resource-usage-meter progress::-webkit-progress-bar { background: #e2e8f0 }
+.resource-usage-meter progress::-webkit-progress-value { background: var(--usage-bar) }
+.resource-usage-meter progress::-moz-progress-bar { background: var(--usage-bar) }
+.resource-usage-warning { border-color: #b7791f }
+.resource-usage-warning progress { --usage-bar: #b7791f }
+.resource-usage-danger { border-color: #b42318 }
+.resource-usage-danger progress { --usage-bar: #b42318 }
+.resource-usage-danger > b { color: #b42318 }
+.resource-usage-unknown progress { --usage-bar: #64748b }
 .avatar-frame > img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit }
 .avatar-fill { width: 100%; height: 100%; border-radius: inherit }
 .profile-avatar-editor { display: flex; align-items: center; gap: 20px; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line) }

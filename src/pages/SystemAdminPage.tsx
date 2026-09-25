@@ -1,6 +1,7 @@
 import PlayerAvatar from '../components/PlayerAvatar';
 import { useState } from "react";
 import SystemPresence from '../components/SystemPresence';
+import SystemResourceUsage from '../components/SystemResourceUsage';
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -165,6 +166,7 @@ export default function SystemAdminPage() {
         <Database />
       </div>
       <SystemPresence/>
+      <SystemResourceUsage/>
       <div className="stats-grid">
         {[
           {label: "משתמשים", value: s.users, onOpen: () => setUsersOpen(true)},
