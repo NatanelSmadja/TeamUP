@@ -18,19 +18,14 @@ import OpeningDraw from '../components/OpeningDraw';
 import {RatingAuditPanel} from '../components/RatingAuditPanel';
 import {MatchRoundCenter} from '../components/MatchRoundCenter';
 import {MatchRoundTimer} from '../components/MatchRoundTimer';
+import {calcBalance} from '../lib/teamBalance';
+import {PlayerBalanceRating, TeamRatingSummary} from '../components/TeamRatingSummary';
 
 const colorNames: any = {
   red: 'אדומים',
   blue: 'כחולים',
   yellow: 'צהובים',
   green: 'ירוקים',
-};
-const calcBalance = (teams: any[]) => {
-  const ratings = teams.map((t) => {
-    const vals = t.team_players.map((p: any) => Number(p.balance_rating_snapshot ?? p.guest?.balance_rating ?? p.profiles?.base_rating ?? 3));
-    return vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
-  });
-  return ratings.length ? Math.max(0, Math.round(100 - (Math.max(...ratings) - Math.min(...ratings)) * 20)) : 0;
 };
 const participantName = (player: any) => player.guest?.display_name || fullName(player.profiles);
 const participantPosition = (player: any) => player.assigned_position || player.guest?.preferred_position || player.profiles?.preferred_position;
@@ -46,7 +41,7 @@ export default function MatchPage() {
   const {id} = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const {user, profile} = useAuth();
-  const {data: g} = useGroup();
+  const {data: g, memberships} = useGroup();
   const canEditTeams = canManage(g, 'edit_teams');
   const canEditMatch = canManage(g, 'edit_match') || isSystemAdmin(profile);
   const canGenerateTeams = canManage(g, 'generate_teams');
@@ -290,7 +285,7 @@ export default function MatchPage() {
     if (error) toast.error(error.message);
     else {
       await refresh();
-      toast.success(`השחקן הועבר. מדד האיזון לפני השינוי: ${before}%`);
+      toast.success(`השחקן הועבר. דמיון בדירוגים לפני השינוי: ${before}%`);
     }
     setDragged(null);
   };
@@ -445,6 +440,8 @@ export default function MatchPage() {
   const spotsLeft = Math.max(0, match.capacity - participantCount);
   const matchStarted = Date.now() >= new Date(`${match.match_date}T${match.start_time}`).getTime();
   const matchEnded = Date.now() >= matchEndAt(match).getTime();
+  const matchMembership = memberships.find(session => session.group.id === match.group_id);
+  const canViewBalanceRatings = !!matchMembership && canManage(matchMembership);
   const balance = calcBalance(teams),
     attendedCount = confirmed.filter((r) => r.attended).length + guests.filter((guest) => guest.attended).length,
     canManageAttendance = match.created_by === user?.id || canManage(g, 'open_ratings');
@@ -560,7 +557,7 @@ export default function MatchPage() {
       '',
       `👥 ${participantCount} משתתפים${guests.length ? ` · ${guests.length} ${guests.length === 1 ? 'אורח' : 'אורחים'}` : ''}`,
       wait.length ? `⏳ ${wait.length} ברשימת המתנה` : null,
-      teams.length ? `⚖️ איזון קבוצות: ${balance}%` : null,
+      teams.length ? `⚖️ דמיון בדירוגים: ${balance}% (ממוצעים בלבד)` : null,
       '',
       'נשלח מ־TEAMUP',
     ];
@@ -756,7 +753,7 @@ export default function MatchPage() {
               <h2>הקבוצות למשחק</h2>
             </div>
             <div className="teams-heading-actions">
-              <Badge><ShieldCheck size={15} />איזון {balance}%</Badge>
+              <span title="השוואת ממוצעי דירוג בלבד; אינה משקללת מספר שחקנים או שוערים"><Badge><ShieldCheck size={15} />דמיון בדירוגים {balance}%</Badge></span>
               <Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button>
               <Button variant="secondary" onClick={shareTeamReveal}><Share2 size={16}/>שליחת קישור</Button>
               <Button onClick={openTeamReveal}><Eye size={16}/>חשיפת הקבוצות</Button>
@@ -798,13 +795,14 @@ export default function MatchPage() {
                   </div>
                   <strong>{team.team_players.length} שחקנים</strong>
                 </header>
+                <TeamRatingSummary team={team} teamSize={match.team_size} showRatings={canViewBalanceRatings}/>
                 <div className="team-player-list">
                   {team.team_players.map((p: any) => (
                     <div key={p.id} className={`team-player ${swapFirst === p.id ? 'swap-selected' : ''} ${p.is_locked ? 'player-locked' : ''} ${p.guest ? 'guest-team-player' : ''}`} draggable={canEditPublishedTeams && !p.is_locked} onDragStart={() => setDragged(p.id)} onClick={() => canEditPublishedTeams && selectSwap(p.id)} title={p.is_locked ? 'השחקן נעול ואי אפשר להעביר אותו' : canEditPublishedTeams ? 'לחיצה לבחירת השחקן להחלפה' : undefined}>
                       <GripVertical size={15} />
                       <div className="player-avatar sm">{p.guest?.display_name?.[0] || p.profiles?.first_name?.[0] || 'ש'}</div>
                       <div>
-                        <strong>{participantName(p)} {p.guest && <Badge className="guest-badge">אורח</Badge>}</strong>
+                        <strong>{participantName(p)} <PlayerBalanceRating player={p} visible={canViewBalanceRatings}/>{p.guest && <Badge className="guest-badge">אורח</Badge>}</strong>
                         <span>{positionLabel(participantPosition(p))}</span>
                       </div>
                       {canEditPublishedTeams ? (
@@ -835,7 +833,7 @@ export default function MatchPage() {
         <GoalCenter match={match} registrations={regs} />
         <MatchRoundCenter match={match} registrations={regs} teams={teams} />
       </div>}
-      <TeamReveal match={match} teams={teams} balance={balance} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
+      <TeamReveal match={match} teams={teams} balance={balance} showRatings={canViewBalanceRatings} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
       <OpeningDraw teams={teams} open={openingDrawOpen} onClose={() => setOpeningDrawOpen(false)}/>
       {nightModeOpen && createPortal(<div className="match-night-layer" role="dialog" aria-modal="true" aria-label="מצב ערב משחק">
         <header><div><small>{match.title}</small><strong>מצב ערב משחק</strong></div><div><Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button><button onClick={() => setNightModeOpen(false)} aria-label="סגירת מצב ערב משחק">×</button></div></header>

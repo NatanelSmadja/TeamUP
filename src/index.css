@@ -5524,11 +5524,37 @@ body {
 }
 
 .guest-link-controls select {
-    min-width: 175px
+    flex: 1 1 200px;
+    min-width: 0;
+    width: 100%
 }
 
 .guest-link-controls .tap {
     white-space: nowrap
+}
+
+/* Keep guest identity readable even when all management controls are visible. */
+.match-roster-card .guest-player-row {
+    grid-template-columns: minmax(0, 1fr)
+}
+
+.match-roster-card .player-row-main > b,
+.match-roster-card .player-row-main > .player-avatar {
+    flex-shrink: 0
+}
+
+.guest-player-row .guest-badge {
+    white-space: nowrap
+}
+
+.guest-player-row .roster-row-actions {
+    min-width: 0;
+    flex-wrap: wrap
+}
+
+.guest-player-row .guest-link-controls {
+    flex: 1 1 260px;
+    min-width: 0
 }
 
 .match-roster-grid {
@@ -8097,11 +8123,11 @@ body:has(.goal-scorers-dialog[open]) { overflow:hidden }
     font-size: 18px
 }
 
-.team-reveal-grid article > div {
+.team-reveal-grid article > div:not(.team-rating-summary) {
     display: grid
 }
 
-.team-reveal-grid article > div > span {
+.team-reveal-grid article > div:not(.team-rating-summary) > span {
     display: grid;
     min-height: 41px;
     grid-template-columns:28px minmax(0, 1fr) auto auto;
@@ -8111,7 +8137,7 @@ body:has(.goal-scorers-dialog[open]) { overflow:hidden }
     font-size: 12px
 }
 
-.team-reveal-grid article > div > span:first-child { border-top: 0 }
+.team-reveal-grid article > div:not(.team-rating-summary) > span:first-child { border-top: 0 }
 
 .team-reveal-grid article i {
     display: grid;
@@ -8379,4 +8405,56 @@ details[open] > .rating-audit-rater-body,details[open] > div { animation:motion-
 @media (prefers-reduced-motion:reduce) {
     html { scroll-behavior:auto !important }
     *,*:before,*:after { animation-duration:.01ms !important; animation-delay:0ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important }
+}
+
+/* Snapshot ratings are rendered only for group managers. */
+.player-balance-rating {
+    display: inline-block;
+    margin-inline-start: 5px;
+    padding: 2px 6px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    vertical-align: middle
+}
+
+.team-rating-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 8px 0 12px;
+    color: var(--muted);
+    font-size: 12px
+}
+
+.team-reveal-current > .team-rating-summary {
+    justify-content: center
+}
+
+.team-card > .team-rating-summary {
+    margin-inline: 14px
+}
+
+.team-reveal-layer .team-rating-summary,
+.team-reveal-layer .team-rating-summary b,
+.team-reveal-layer .player-balance-rating {
+    color: #bac8dc
+}
+
+.team-player > div:nth-child(3) {
+    min-width: 0;
+    overflow-wrap: anywhere
+}
+
+.team-reveal-grid article strong:has(.player-balance-rating),
+.team-reveal-lineup strong:has(.player-balance-rating) {
+    white-space: normal;
+    overflow-wrap: anywhere
 }

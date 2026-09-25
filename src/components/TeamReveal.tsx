@@ -4,6 +4,7 @@ import {Eye, FastForward, RefreshCcw, Share2, ShieldCheck, Sparkles, X} from 'lu
 import type {Match} from '../types';
 import {positionLabel} from '../lib/utils';
 import {Badge, Button} from './ui';
+import {PlayerBalanceRating, TeamRatingSummary} from './TeamRatingSummary';
 
 type RevealPhase = 'intro' | 'locking' | 'team' | 'final';
 
@@ -24,10 +25,11 @@ const teamNames: Record<string, string> = {
 const playerName = (player: any) => player.guest?.display_name || [player.profiles?.first_name, player.profiles?.last_name].filter(Boolean).join(' ') || 'שחקן';
 const playerPosition = (player: any) => player.assigned_position || player.guest?.preferred_position || player.profiles?.preferred_position;
 
-export default function TeamReveal({match, teams, balance, open, onClose, onShare}: {
+export default function TeamReveal({match, teams, balance, showRatings = false, open, onClose, onShare}: {
   match: Match;
   teams: any[];
   balance: number;
+  showRatings?: boolean;
   open: boolean;
   onClose: () => void;
   onShare: () => void | Promise<void>;
@@ -123,7 +125,7 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
           <span className="team-reveal-eyebrow"><Sparkles size={14}/> TEAM REVEAL</span>
           <div className="team-reveal-ball">⚽</div>
           <h1>הרגע שכולם חיכו לו</h1>
-          <p>{orderedTeams.reduce((sum, team) => sum + (team.team_players?.length || 0), 0)} שחקנים, {orderedTeams.length} קבוצות וחלוקה אחת מאוזנת.<br/>מוכנים לגלות עם מי אתם משחקים?</p>
+          <p>{orderedTeams.reduce((sum, team) => sum + (team.team_players?.length || 0), 0)} שחקנים, {orderedTeams.length} קבוצות והרכבים חדשים.<br/>מוכנים לגלות עם מי אתם משחקים?</p>
           <Button onClick={start}>חשיפת הקבוצות <span>←</span></Button>
           <small>החלוקה פורסמה על ידי מנהל הקבוצה</small>
         </section>}
@@ -140,10 +142,11 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
           <span className="team-reveal-number">קבוצה {teamIndex + 1} מתוך {orderedTeams.length}</span>
           <h1>{teamNames[currentTeam.color_key] || currentTeam.name}</h1>
           <p>ההרכב שלכם למשחק</p>
+          <TeamRatingSummary team={currentTeam} teamSize={match.team_size} showRatings={showRatings}/>
           <div className="team-reveal-lineup">
             {(currentTeam.team_players || []).map((player: any, index: number) => <article className={index < visiblePlayers ? 'is-visible' : ''} key={player.id}>
               <span className="team-reveal-avatar">{playerName(player)[0]}</span>
-              <div><strong>{playerName(player)}</strong><small>{positionLabel(playerPosition(player))}{player.guest ? ' · אורח' : ''}</small></div>
+              <div><strong>{playerName(player)} <PlayerBalanceRating player={player} visible={showRatings}/></strong><small>{positionLabel(playerPosition(player))}{player.guest ? ' · אורח' : ''}</small></div>
               <b>{index + 1}</b>
             </article>)}
           </div>
@@ -152,7 +155,7 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
 
         {phase === 'final' && <section className="team-reveal-final">
           <div className="team-reveal-final-head">
-            <span><ShieldCheck size={16}/> איזון קבוצות {balance}%</span>
+            <span title="דמיון בממוצעי הדירוג בלבד, ללא שקלול גדלי קבוצות ושוערים"><ShieldCheck size={16}/> דמיון בדירוגים {balance}%</span>
             <h1>הכול מוכן לשריקה</h1>
             <p>{orderedTeams.length} הקבוצות של {match.title}</p>
           </div>
@@ -161,7 +164,8 @@ export default function TeamReveal({match, teams, balance, open, onClose, onShar
               const teamColor = teamPalette[team.color_key]?.color || '#5b8cff';
               return <article key={team.id} style={{'--team-color': teamColor} as React.CSSProperties}>
                 <header><h2>{teamNames[team.color_key] || team.name}</h2><Badge>{team.team_players?.length || 0} שחקנים</Badge></header>
-                <div>{(team.team_players || []).map((player: any, index: number) => <span key={player.id}><i>{playerName(player)[0]}</i><strong>{playerName(player)}</strong>{player.guest && <small>אורח</small>}<b>{index + 1}</b></span>)}</div>
+                <TeamRatingSummary team={team} teamSize={match.team_size} showRatings={showRatings}/>
+                <div>{(team.team_players || []).map((player: any, index: number) => <span key={player.id}><i>{playerName(player)[0]}</i><strong>{playerName(player)} <PlayerBalanceRating player={player} visible={showRatings}/></strong>{player.guest && <small>אורח</small>}<b>{index + 1}</b></span>)}</div>
               </article>;
             })}
           </div>
