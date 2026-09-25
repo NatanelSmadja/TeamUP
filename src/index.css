@@ -5535,7 +5535,21 @@ body {
 
 /* Keep guest identity readable even when all management controls are visible. */
 .match-roster-card .guest-player-row {
-    grid-template-columns: minmax(0, 1fr)
+    display: flex;
+    flex-direction: column;
+    align-items: stretch
+}
+
+.guest-player-row .player-row-main {
+    display: grid;
+    grid-template-columns: 25px 34px minmax(0, 1fr);
+    width: 100%
+}
+
+.match-roster-card .guest-player-row .player-row-main > span,
+.match-roster-card .guest-player-row .player-row-main strong {
+    overflow-wrap: break-word;
+    word-break: normal
 }
 
 .match-roster-card .player-row-main > b,
@@ -5548,6 +5562,7 @@ body {
 }
 
 .guest-player-row .roster-row-actions {
+    width: 100%;
     min-width: 0;
     flex-wrap: wrap
 }
@@ -8458,3 +8473,22 @@ details[open] > .rating-audit-rater-body,details[open] > div { animation:motion-
     white-space: normal;
     overflow-wrap: anywhere
 }
+
+.regeneration-preview {
+    width: min(920px, calc(100vw - 24px));
+    max-height: 90dvh;
+    overflow: auto;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--surface, #fff);
+    color: var(--text, #252236)
+}
+.regeneration-preview::backdrop { background: rgba(15, 12, 28, .72) }
+.regeneration-preview h2 { margin: 0 0 12px; font-size: 22px }
+.regeneration-preview p { margin: 10px 0; line-height: 1.6 }
+.regeneration-preview-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin: 20px 0 }
+.regeneration-preview-teams section { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px }
+.regeneration-preview-teams li { padding: 7px 0; overflow-wrap: anywhere }
+.regeneration-preview footer { display: flex; flex-wrap: wrap; gap: 10px }
+.regeneration-preview footer .tap { flex: 1; min-width: min(220px, 100%) }

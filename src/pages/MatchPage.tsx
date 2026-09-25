@@ -20,6 +20,7 @@ import {MatchRoundCenter} from '../components/MatchRoundCenter';
 import {MatchRoundTimer} from '../components/MatchRoundTimer';
 import {calcBalance} from '../lib/teamBalance';
 import {PlayerBalanceRating, TeamRatingSummary} from '../components/TeamRatingSummary';
+import TeamRegenerationPreview, {type RegenerationPlan} from '../components/TeamRegenerationPreview';
 
 const colorNames: any = {
   red: 'אדומים',
@@ -59,6 +60,8 @@ export default function MatchPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [matchTitle, setMatchTitle] = useState('');
   const [teamRevealOpen, setTeamRevealOpen] = useState(false);
+  const [regenerationBusy, setRegenerationBusy] = useState(false);
+  const [regenerationPreview, setRegenerationPreview] = useState<RegenerationPlan | null>(null);
   const [openingDrawOpen, setOpeningDrawOpen] = useState(false);
   const [matchView, setMatchView] = useState<'prepare' | 'live' | 'summary'>('prepare');
   const [nightModeOpen, setNightModeOpen] = useState(false);
@@ -332,17 +335,40 @@ export default function MatchPage() {
       refresh();
     }
   };
-  const rerandom = async () => {
-    if (!confirm('ליצור חלוקה חדשה? החלוקה הנוכחית תישאר בהיסטוריה.')) return;
-    const {error} = await supabase.rpc('regenerate_balanced_teams', {
-      p_match_id: id,
+  const publishRegeneration = async (plan: RegenerationPlan, allowLessBalanced: boolean) => {
+    const {error} = await supabase.rpc('apply_team_regeneration', {
+      p_match_id: id, p_expected_state: plan.expected_state,
+      p_candidate_signature: plan.candidate_signature, p_allow_less_balanced: allowLessBalanced,
     });
-    if (error) toast.error(error.message);
-    else {
-      toast.success('נוצרה חלוקה חדשה');
-      await refresh();
-      openTeamReveal();
-    }
+    if (error) throw error;
+    setRegenerationPreview(null);
+    toast.success('נוצרה חלוקה עם הרכבים חדשים');
+    await refresh();
+    openTeamReveal();
+  };
+  const rerandom = async () => {
+    if (regenerationBusy || !confirm('לחפש הרכבים חדשים? חלופה באותה רמת איזון או טובה יותר תפורסם, והחלוקה הנוכחית תישמר בהיסטוריה.')) return;
+    setRegenerationBusy(true);
+    try {
+      const {data, error} = await supabase.rpc('preview_team_regeneration', {p_match_id: id});
+      if (error) throw error;
+      const plan = data as RegenerationPlan;
+      if (plan.status === 'no_alternative') {
+        toast.info('לא הצלחתי למצוא חלוקה אחרת ששומרת על גדלי הקבוצות, השוערים והשחקנים הנעולים. החלוקה הקיימת נשארה.');
+      } else if (plan.status === 'less_balanced') {
+        if (confirm('נמצאה חלוקה שונה, אבל היא פחות מאוזנת מהחלוקה הנוכחית. האם תרצה לראות אותה לפני שתחליט?')) setRegenerationPreview(plan);
+      } else if (plan.status === 'balanced') {
+        await publishRegeneration(plan, false);
+      }
+    } catch (error: any) {toast.error(error.message || 'לא הצלחנו לבדוק חלוקה חדשה');}
+    finally {setRegenerationBusy(false);}
+  };
+  const acceptRegeneration = async () => {
+    if (!regenerationPreview || regenerationBusy) return;
+    setRegenerationBusy(true);
+    try {await publishRegeneration(regenerationPreview, true);}
+    catch (error: any) {toast.error(error.message || 'לא הצלחנו לפרסם את החלופה'); setRegenerationPreview(null);}
+    finally {setRegenerationBusy(false);}
   };
   const attendance = useMutation({
     mutationFn: async ({userId, attended}: {userId: string | null; attended: boolean}) => {
@@ -774,9 +800,9 @@ export default function MatchPage() {
                 </>
               )}
               {canRegenerateTeams && (
-                <Button variant="secondary" onClick={rerandom} title="יצירת חלוקה חדשה לפי הדירוגים והעמדות">
+                <Button variant="secondary" onClick={rerandom} disabled={regenerationBusy} title="חיפוש הרכבים שונים תוך שמירה על גודל הקבוצות והשוערים">
                   <RefreshCcw size={17} />
-                  חלוקה מחדש
+                  {regenerationBusy ? 'בודק חלופה...' : 'חלוקה מחדש'}
                 </Button>
               )}
               <Button onClick={shareTeams} title="שיתוף רשימת הקבוצות דרך וואטסאפ או תפריט השיתוף">
@@ -835,6 +861,7 @@ export default function MatchPage() {
       </div>}
       <TeamReveal match={match} teams={teams} balance={balance} showRatings={canViewBalanceRatings} open={teamRevealOpen} onClose={closeTeamReveal} onShare={shareTeamReveal}/>
       <OpeningDraw teams={teams} open={openingDrawOpen} onClose={() => setOpeningDrawOpen(false)}/>
+      {regenerationPreview && <TeamRegenerationPreview plan={regenerationPreview} teamSize={match.team_size} busy={regenerationBusy} onPublish={acceptRegeneration} onCancel={() => setRegenerationPreview(null)}/>}
       {nightModeOpen && createPortal(<div className="match-night-layer" role="dialog" aria-modal="true" aria-label="מצב ערב משחק">
         <header><div><small>{match.title}</small><strong>מצב ערב משחק</strong></div><div><Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button><button onClick={() => setNightModeOpen(false)} aria-label="סגירת מצב ערב משחק">×</button></div></header>
         <main><MatchRoundTimer match={match}/><GoalCenter match={match} registrations={regs}/><MatchRoundCenter match={match} registrations={regs} teams={teams}/></main>

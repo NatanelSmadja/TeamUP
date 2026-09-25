@@ -25,7 +25,7 @@ beforeAll(async () => {
     create table public.match_registrations(match_id uuid references matches,user_id uuid references profiles,registration_status text,attended boolean default false,unique(match_id,user_id));
     create table public.match_guests(id uuid primary key,match_id uuid references matches,balance_rating numeric,preferred_position text);
     create table public.teams(id uuid primary key default gen_random_uuid(),match_id uuid references matches,name text,team_number int,generation_version int,color_key text,is_published boolean default false);
-    create table public.team_players(id uuid primary key default gen_random_uuid(),team_id uuid not null references teams,user_id uuid references profiles,guest_id uuid references match_guests,assigned_position text,is_goalkeeper boolean,
+    create table public.team_players(id uuid primary key default gen_random_uuid(),team_id uuid not null references teams,user_id uuid references profiles,guest_id uuid references match_guests,assigned_position text,is_goalkeeper boolean,is_locked boolean default false,
       check ((user_id is not null)::int+(guest_id is not null)::int=1),unique(team_id,user_id),unique(team_id,guest_id));
     create table public.player_ratings(match_id uuid references matches,rater_user_id uuid references profiles,rated_user_id uuid references profiles,overall_rating int not null check(overall_rating between 1 and 5),teamwork_rating int,attack_rating int,defense_rating int,effort_rating int,sportsmanship_rating int,unique(match_id,rater_user_id,rated_user_id));
     create table public.mvp_votes(match_id uuid references matches,voter_user_id uuid references profiles,voted_user_id uuid references profiles,unique(match_id,voter_user_id));
@@ -37,6 +37,8 @@ beforeAll(async () => {
   await db.exec(migration('052_balanced_team_allocation'));
   const lifecycleSql = migration('033_safe_match_lifecycle_and_completion');
   await db.exec(lifecycleSql.slice(lifecycleSql.indexOf('create or replace function public.regenerate_balanced_teams'), lifecycleSql.indexOf('create or replace function public.set_match_attendance')));
+  await db.exec(migration('053_distinct_team_regeneration'));
+  await db.exec(migration('054_meaningful_team_reshuffle'));
   const ratingsSql = migration('018_secure_match_ratings_flow');
   await db.exec(ratingsSql.slice(ratingsSql.indexOf('create or replace function public.submit_match_ratings'), ratingsSql.indexOf('create or replace function public.notify_ratings_opened')));
   const statsSql = migration('039_mvp_wins_and_completed_game_stats');
@@ -88,6 +90,64 @@ describe('PostgreSQL allocation', () => {
   },30000);
 });
 
+describe('distinct alternative search', () => {
+  const rows = ratings => ratings.map((rating,i)=>({id:String(i),team_number:Math.floor(i/2)+1,balance_rating_snapshot:rating,is_goalkeeper:false,is_locked:false}));
+  const find = async players => (await query('select private.find_team_alternative($1::jsonb) plan',[JSON.stringify(players)])).rows[0].plan;
+  const partition = async players => (await query('select private.team_partition($1::jsonb) p',[JSON.stringify(players)])).rows[0].p;
+  it('ignores colors and player order when identifying the same partition', async () => {
+    const source=rows([3,3,3,3]);
+    expect(await partition(source)).toEqual(await partition([...source].reverse().map(p=>({...p,team_number:3-p.team_number}))));
+    const plan=await find(source);
+    expect(plan.status).toBe('balanced');
+    expect(await partition(plan.allocation)).not.toEqual(await partition(source));
+  });
+  it('offers a less balanced candidate instead of silently applying it', async () => {
+    const plan=await find(rows([5,1,4,2]));
+    expect(plan.status).toBe('less_balanced');
+    expect(plan.current_balance).toBe(100); expect(plan.candidate_balance).toBe(80);
+  });
+  it('meaningfully reshuffles the reported 15-player roster instead of only swapping two guests', async () => {
+    const source=[3.55,3,3,3.76,2.90,3.94,3,3,3.32,3,3.08,3.81,3,3.07,3.31]
+      .map((rating,i)=>({id:String(i),team_number:Math.floor(i/5)+1,balance_rating_snapshot:rating,is_goalkeeper:i===3||i===6,is_locked:false}));
+    const plan=await find(source);
+    expect(plan.status).not.toBe('no_alternative');
+    expect(plan.changed_teammate_percent).toBeGreaterThanOrEqual(40);
+    expect(await partition(plan.allocation)).not.toEqual(await partition(source));
+    for(const t of [1,2,3]) {
+      expect(plan.allocation.filter(p=>p.team_number===t)).toHaveLength(5);
+      expect(plan.allocation.filter(p=>p.team_number===t&&p.is_goalkeeper)).toHaveLength(t===3?0:1);
+    }
+    expect((await find(source)).candidate_signature).toBe(plan.candidate_signature);
+    const next=await find(plan.allocation);
+    expect(await partition(next.allocation)).not.toEqual(await partition(plan.allocation));
+  });
+  it('reshuffles a maximum-size roster without losing players or changing capacities', async () => {
+    const source=Array.from({length:200},(_,i)=>({id:String(i),team_number:Math.floor(i/50)+1,balance_rating_snapshot:1+((i*17)%401)/100,is_goalkeeper:i%50<2,is_locked:false}));
+    const plan=await find(source);
+    expect(plan.status).not.toBe('no_alternative');
+    expect(new Set(plan.allocation.map(p=>p.id)).size).toBe(200);
+    for(const t of [1,2,3,4]) {
+      expect(plan.allocation.filter(p=>p.team_number===t)).toHaveLength(50);
+      expect(plan.allocation.filter(p=>p.team_number===t&&p.is_goalkeeper)).toHaveLength(2);
+    }
+  },30000);
+  it('finds no alternative for singletons or locked rosters', async () => {
+    expect((await find(rows([3,3]).map((p,i)=>({...p,team_number:i+1})))).status).toBe('no_alternative');
+    expect((await find(rows([3,3,3,3]).map(p=>({...p,is_locked:true})))).status).toBe('no_alternative');
+  });
+  it('preserves team size, goalkeeper count, locks and snapshots', async () => {
+    const source=rows([3,3,3,3,3,3]).map((p,i)=>({...p,is_goalkeeper:i%2===0,is_locked:i===0}));
+    const plan=await find(source);
+    expect(plan.status).toBe('balanced');
+    expect(plan.allocation.find(p=>p.id==='0').team_number).toBe(1);
+    for(const t of [1,2,3]) {
+      expect(plan.allocation.filter(p=>p.team_number===t)).toHaveLength(2);
+      expect(plan.allocation.filter(p=>p.team_number===t&&p.is_goalkeeper)).toHaveLength(1);
+    }
+    expect(plan.allocation.map(p=>p.balance_rating_snapshot)).toEqual(source.map(p=>p.balance_rating_snapshot));
+  });
+});
+
 describe('generation and rating integration', () => {
   beforeEach(async () => {
     await db.exec('truncate team_players,teams,match_guests,player_ratings,mvp_votes,match_registrations,group_members,player_public_stats,goal_events,profiles,matches cascade');
@@ -137,6 +197,51 @@ describe('generation and rating integration', () => {
     await expect(query('select public.regenerate_balanced_teams($1)',[uid(100)])).rejects.toThrow('חורג');
     expect((await query('select status from matches where id=$1',[uid(100)])).rows[0].status).toBe('teams_published');
     expect((await query('select distinct generation_version from teams where is_published')).rows).toEqual([{generation_version:2}]);
+  });
+
+  const seedPreviewCase = async () => {
+    await query("update matches set status='teams_published',capacity=4,team_size=2,team_count=2 where id=$1",[uid(100)]);
+    for(const team of [1,2]) await query('insert into teams(id,match_id,name,team_number,generation_version,is_published) values($1,$2,$3,$4,1,true)',[uid(300+team),uid(100),`Team ${team}`,team]);
+    for(const [i,rating] of [5,1,4,2].entries()) await query('insert into team_players(team_id,user_id,is_goalkeeper,balance_rating_snapshot) values($1,$2,false,$3)',[uid(301+Math.floor(i/2)),uid(i+1),rating]);
+  };
+  const preview = async () => (await query('select public.preview_team_regeneration($1) plan',[uid(100)])).rows[0].plan;
+  const accept = (plan,allow=false) => query('select public.apply_team_regeneration($1,$2,$3,$4)',[uid(100),plan.expected_state,plan.candidate_signature,allow]);
+  it('does not mutate on preview, requires consent and publishes the exact preview once', async () => {
+    await seedPreviewCase();
+    const plan=await preview();
+    expect(plan.status).toBe('less_balanced');
+    expect((await query('select count(*)::int n from teams')).rows[0].n).toBe(2);
+    await expect(accept(plan)).rejects.toThrow('אישור');
+    await expect(query('select public.regenerate_balanced_teams($1)',[uid(100)])).rejects.toThrow('אישור');
+    expect((await query('select count(*)::int n from teams')).rows[0].n).toBe(2);
+    await accept(plan,true);
+    const actual=(await query('select tp.user_id,t.team_number,tp.balance_rating_snapshot from team_players tp join teams t on t.id=tp.team_id where t.is_published order by tp.user_id')).rows;
+    const expected=plan.allocation.map(p=>({user_id:p.user_id,team_number:p.team_number,balance_rating_snapshot:String(p.balance_rating_snapshot)})).sort((a,b)=>a.user_id.localeCompare(b.user_id));
+    expect(actual.map(p=>({...p,balance_rating_snapshot:String(Number(p.balance_rating_snapshot))}))).toEqual(expected);
+    await expect(accept(plan,true)).rejects.toThrow('השתנתה');
+    expect((await query('select count(*)::int n from teams')).rows[0].n).toBe(4);
+  });
+  it('rejects stale previews, tampered signatures, unauthorized users and matches that have started', async () => {
+    await seedPreviewCase();
+    const plan=await preview();
+    await expect(accept({...plan,candidate_signature:'tampered'},true)).rejects.toThrow('השתנתה');
+    await query('update team_players set is_locked=true where user_id=$1',[uid(1)]);
+    await expect(accept(plan,true)).rejects.toThrow('השתנתה');
+    await query("select set_config('test.allowed','false',false)");
+    await expect(preview()).rejects.toThrow('הרשאה');
+    await expect(accept(plan,true)).rejects.toThrow('הרשאה');
+    await query("select set_config('test.allowed','true',false)");
+    await query("update matches set match_date=current_date-1 where id=$1",[uid(100)]);
+    await expect(preview()).rejects.toThrow('תחילת');
+    await expect(accept(plan,true)).rejects.toThrow('תחילת');
+    expect((await query('select count(*)::int n from teams')).rows[0].n).toBe(2);
+  });
+  it('leaves the current generation alone when no alternative exists', async () => {
+    await seedPreviewCase();
+    await query('update team_players set is_locked=true');
+    const plan=await preview(); expect(plan.status).toBe('no_alternative');
+    await expect(accept(plan,true)).rejects.toThrow('לא נמצאה');
+    expect((await query('select count(*)::int n from teams where is_published')).rows[0].n).toBe(2);
   });
 
   const submit = (ratings, mvp=null) => query('select public.submit_match_ratings($1,$2::jsonb,$3)',[uid(100),JSON.stringify(ratings),mvp]);
