@@ -865,7 +865,7 @@ export default function MatchPage() {
       {regenerationPreview && <TeamRegenerationPreview plan={regenerationPreview} teamSize={match.team_size} busy={regenerationBusy} onPublish={acceptRegeneration} onCancel={() => setRegenerationPreview(null)}/>}
       {nightModeOpen && createPortal(<div className="match-night-layer" role="dialog" aria-modal="true" aria-label="מצב ערב משחק">
         <header><div><small>{match.title}</small><strong>מצב ערב משחק</strong></div><div><Button variant="secondary" onClick={() => setOpeningDrawOpen(true)}>הגרלת פתיחה</Button><button onClick={() => setNightModeOpen(false)} aria-label="סגירת מצב ערב משחק">×</button></div></header>
-        <main><MatchRoundTimer match={match}/><GoalCenter match={match} registrations={regs}/><MatchRoundCenter match={match} registrations={regs} teams={teams}/></main>
+        <main className="match-page-v2"><MatchRoundTimer match={match}/><GoalCenter match={match} registrations={regs}/><MatchRoundCenter match={match} registrations={regs} teams={teams}/></main>
       </div>, document.body)}
     </div>
   );
