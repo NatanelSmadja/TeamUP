@@ -17,6 +17,7 @@ import {GoalCenter} from '../components/GoalCenter';
 import TeamReveal from '../components/TeamReveal';
 import OpeningDraw from '../components/OpeningDraw';
 import {RatingAuditPanel} from '../components/RatingAuditPanel';
+import MatchMvpVoteResults from '../components/MatchMvpVoteResults';
 import {MatchRoundCenter} from '../components/MatchRoundCenter';
 import {MatchRoundTimer} from '../components/MatchRoundTimer';
 import {calcBalance} from '../lib/teamBalance';
@@ -670,6 +671,7 @@ export default function MatchPage() {
           {match.ratings_open && canOpenRatings && <Button variant="secondary" disabled={ratingsWindow.isPending} onClick={() => confirm('לסגור את חלון הדירוג?') && ratingsWindow.mutate(false)}><Lock size={16}/>סגירת דירוג</Button>}
         </div>}
       </section>
+      {matchView === 'summary' && match.status === 'completed' && <MatchMvpVoteResults match={match}/>}
       {canViewRatingAudit && match.status === 'completed' && <section className="match-rating-audit-section">
         <Card className="match-rating-audit-entry">
           <div className="match-rating-audit-icon"><Eye size={22}/></div>

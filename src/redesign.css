@@ -2203,6 +2203,13 @@ html[data-theme='dark'] .match-page-v2 .teams-section { color:var(--text) }
 .match-view-live :is(.registration-manager-card,.match-roster-grid,.match-rating-audit-section),
 .match-view-summary :is(.registration-manager-card,.match-roster-grid,.teams-section) { display:none }
 .match-view-live .match-registration-panel,.match-view-summary .match-registration-panel { display:none }
+.match-mvp-results .section-title h2 { display:flex; align-items:center; gap:8px }
+.match-mvp-results .section-title h2 svg { color:var(--brand) }
+.match-mvp-results .section-title p { margin-top:5px; color:var(--muted); font-size:12px }
+.match-mvp-vote-list { display:grid; gap:8px }
+.match-mvp-vote-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface-soft) }
+.match-mvp-vote-row strong { flex:1; color:var(--text) }
+.match-mvp-vote-row > span { color:var(--brand); font-weight:800 }
 .match-view-prepare .match-live-zone { display:none }
 .match-live-zone { display:grid; gap:18px }
 .match-night-layer { position:fixed; z-index:11000; inset:0; overflow:auto; color:#f6f2fa; background:radial-gradient(circle at 80% 0,rgba(112,71,232,.24),transparent 32rem),#100d16 }
