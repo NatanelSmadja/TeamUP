@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>TEAMUP — הדמיית הגרלת פתיחה</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{font-family:Arial,"Noto Sans Hebrew",sans-serif;color:#fff;background:#0e0b13}
+    body{margin:0;min-height:100dvh;background:radial-gradient(circle at 50% 15%,#38225e 0,transparent 32%),linear-gradient(155deg,#21172f,#0e0b13 68%);overflow-x:hidden}
+    button{font:inherit}
+    .demo{width:min(460px,100%);min-height:100dvh;margin:auto;position:relative;overflow:hidden;padding:max(22px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+    .demo:before{content:"";position:absolute;inset:-30% -70%;opacity:.35;pointer-events:none;background:repeating-linear-gradient(115deg,transparent 0 55px,rgba(255,255,255,.025) 56px 57px);transform:rotate(-8deg)}
+    header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between}
+    .brand{font-size:12px;font-weight:950;letter-spacing:2.4px;color:rgba(255,255,255,.72)}
+    .demo-tag{padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:99px;color:#a99fb6;background:rgba(255,255,255,.05);font-size:10px;font-weight:800}
+    main{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 0 6px}
+    .kicker{margin:0 0 11px;color:#d8ff63;font-size:11px;font-weight:900;letter-spacing:.08em}
+    h1{margin:0;color:#fff;font-size:clamp(38px,11vw,50px);font-weight:950;letter-spacing:-.055em;line-height:1}
+    .copy{min-height:21px;margin:12px 0 0;color:#c7bfd2;font-size:14px}
+    .coins{position:relative;display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:47px 0 36px}
+    .slot{display:flex;min-width:0;flex-direction:column;align-items:center;gap:16px}
+    .slot strong{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:18px;font-weight:900}
+    .coin{--team:#7047e8;position:relative;display:grid;width:min(35vw,142px);height:min(35vw,142px);place-items:center;border:1px solid color-mix(in srgb,var(--team) 64%,#fff);border-radius:50%;background:radial-gradient(circle at 33% 27%,rgba(255,255,255,.72),transparent 7%),radial-gradient(circle at 42% 38%,color-mix(in srgb,var(--team) 88%,#fff),var(--team) 45%,color-mix(in srgb,var(--team) 55%,#09070d));box-shadow:inset -9px -13px 20px rgba(0,0,0,.28),inset 7px 8px 15px rgba(255,255,255,.2),0 0 0 7px rgba(255,255,255,.045),0 21px 35px color-mix(in srgb,var(--team) 26%,transparent);transform-style:preserve-3d}
+    .coin:before,.coin:after{content:"";position:absolute;border-radius:50%}
+    .coin:before{inset:10px;border:2px solid rgba(255,255,255,.36)}
+    .coin:after{inset:18px;border:1px dashed rgba(255,255,255,.22)}
+    .face{position:relative;z-index:1;display:grid;width:65%;height:65%;place-items:center;border-radius:50%;background:rgba(16,11,23,.22);box-shadow:inset 0 0 22px rgba(0,0,0,.18)}
+    .face span{font-size:48px;font-weight:950;text-shadow:0 4px 13px rgba(0,0,0,.28)}
+    .ready .coin{border-color:rgba(255,255,255,.18);background:linear-gradient(145deg,#443752,#251d30);box-shadow:inset -9px -13px 20px rgba(0,0,0,.25),inset 7px 8px 15px rgba(255,255,255,.08),0 0 0 7px rgba(255,255,255,.035),0 21px 35px rgba(0,0,0,.24)}
+    .ready .face span{font-size:0}.ready .face span:after{content:"?";font-size:48px}
+    .vs{position:absolute;z-index:5;top:calc(min(35vw,142px)/2 - 22px);left:50%;display:grid;width:45px;height:45px;place-items:center;color:#1c1425;border:4px solid #241a31;border-radius:50%;background:#d8ff63;box-shadow:0 8px 22px rgba(0,0,0,.34);font-size:11px;font-weight:950;transform:translateX(-50%) rotate(-7deg)}
+    .coin.spinning{animation:toss .42s cubic-bezier(.5,.05,.3,.95) infinite}.slot:nth-child(2) .coin.spinning{animation-delay:-.19s;animation-direction:reverse}.coin.locked{filter:none;animation:land .5s cubic-bezier(.18,.8,.24,1.25) both}.rolling .vs{animation:vsPulse .9s ease-in-out infinite}
+    .waiting{display:flex;min-height:49px;flex-direction:column;justify-content:center;gap:4px;margin:-10px 0 20px;opacity:0;transform:translateY(8px);transition:.35s}.waiting.show{opacity:1;transform:none}.waiting span{color:#8f849d;font-size:10px;font-weight:800}.waiting strong{color:#d4ccdc;font-size:13px}
+    .actions{display:flex;width:min(290px,100%);flex-direction:column;gap:8px}
+    .primary{width:100%;min-height:52px;padding:12px;color:#21172a;border:1px solid #d8ff63;border-radius:15px;background:#d8ff63;box-shadow:0 11px 30px rgba(216,255,99,.13);font-size:15px;font-weight:900;cursor:pointer}.primary:disabled{color:#bcb2c8;border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.07);box-shadow:none}
+    .again{padding:8px;color:#aaa0b6;border:0;background:transparent;font-size:12px;font-weight:800;cursor:pointer;visibility:hidden}.again.show{visibility:visible}
+    .setup{position:relative;z-index:2;display:flex;justify-content:center;gap:6px;margin-top:12px}.setup button{min-width:42px;padding:7px 9px;color:#93899f;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04);font-size:11px;font-weight:800;cursor:pointer}.setup button.active{color:#fff;border-color:rgba(216,255,99,.35);background:rgba(216,255,99,.1)}
+    @keyframes toss{0%{transform:translateY(9px) rotateY(0) rotateX(0) rotateZ(-3deg) scale(.96)}50%{transform:translateY(-19px) rotateY(180deg) rotateX(32deg) rotateZ(6deg) scale(1.04)}100%{transform:translateY(9px) rotateY(360deg) rotateX(0) rotateZ(-3deg) scale(.96)}}
+    @keyframes land{0%{transform:translateY(-16px) scale(.88);filter:none}65%{transform:translateY(4px) scale(1.07);filter:none}100%{transform:none;filter:none}}
+    @keyframes vsPulse{0%,100%{box-shadow:0 8px 22px rgba(0,0,0,.34);transform:translateX(-50%) rotate(-7deg) scale(1)}50%{box-shadow:0 0 0 8px rgba(216,255,99,.08),0 8px 28px rgba(216,255,99,.22);transform:translateX(-50%) rotate(-7deg) scale(1.08)}}
+    @media(min-width:700px){body{padding:26px}.demo{min-height:780px;height:calc(100dvh - 52px);max-height:820px;border:1px solid rgba(255,255,255,.14);border-radius:34px;box-shadow:0 34px 100px rgba(0,0,0,.5)}}
+    @media(max-height:680px){main{padding-top:18px}.coins{margin:28px 0 23px}.coin{width:min(30vw,116px);height:min(30vw,116px)}.vs{top:calc(min(30vw,116px)/2 - 22px)}.waiting{margin-bottom:10px}.setup{margin-top:4px}}
+    @media(prefers-reduced-motion:reduce){.coin.spinning,.coin.locked{animation:none}}
+  </style>
+</head>
+<body>
+  <section class="demo">
+    <header><span class="brand">TEAMUP</span><span class="demo-tag">הדמיה אינטראקטיבית</span></header>
+    <main id="stage" class="ready">
+      <p class="kicker">הגרלת פתיחת המשחק</p>
+      <h1 id="title">מי עולה ראשון?</h1>
+      <p id="copy" class="copy">4 קבוצות. שתי קבוצות יעלו למגרש.</p>
+      <div class="coins">
+        <div class="slot"><div id="coin0" class="coin" style="--team:#7047e8"><div class="face"><span id="initial0">?</span></div></div><strong id="name0">???</strong></div>
+        <div class="slot"><div id="coin1" class="coin" style="--team:#7047e8"><div class="face"><span id="initial1">?</span></div></div><strong id="name1">???</strong></div>
+        <b class="vs">VS</b>
+      </div>
+      <div id="waiting" class="waiting"><span>מחכות בצד</span><strong id="waitingNames"></strong></div>
+      <div class="actions"><button id="roll" class="primary">יאללה, מגרילים</button><button id="again" class="again">הגרלה חוזרת</button></div>
+    </main>
+    <div class="setup" aria-label="מספר קבוצות"><button data-count="3">3 קבוצות</button><button class="active" data-count="4">4 קבוצות</button><button data-count="5">5 קבוצות</button></div>
+  </section>
+  <script>
+    const allTeams=[
+      {name:'האדומים',initial:'א',color:'#ef5f6d'},
+      {name:'הכחולים',initial:'כ',color:'#5b8cff'},
+      {name:'הצהובים',initial:'צ',color:'#f5c451'},
+      {name:'הירוקים',initial:'י',color:'#36d3ad'},
+      {name:'הלבנים',initial:'ל',color:'#d9d7e2'}
+    ];
+    let teamCount=4,timer=null,finishTimer=null,running=false;
+    const stage=document.querySelector('#stage'),title=document.querySelector('#title'),copy=document.querySelector('#copy'),roll=document.querySelector('#roll'),again=document.querySelector('#again'),waiting=document.querySelector('#waiting'),waitingNames=document.querySelector('#waitingNames');
+    const coins=[document.querySelector('#coin0'),document.querySelector('#coin1')],names=[document.querySelector('#name0'),document.querySelector('#name1')],initials=[document.querySelector('#initial0'),document.querySelector('#initial1')];
+    const random=n=>Math.floor(Math.random()*n);
+    const pair=()=>{const a=random(teamCount);let b=random(teamCount-1);if(b>=a)b++;return[a,b]};
+    function show(indices,locked=0){indices.forEach((teamIndex,i)=>{const team=allTeams[teamIndex];coins[i].style.setProperty('--team',team.color);if(locked>i)coins[i].className='coin locked';names[i].textContent=team.name;initials[i].textContent=team.initial})}
+    function reset(){clearInterval(timer);clearTimeout(finishTimer);running=false;stage.className='ready';title.textContent='מי עולה ראשון?';copy.textContent=`${teamCount} קבוצות. שתי קבוצות יעלו למגרש.`;names.forEach(x=>x.textContent='???');initials.forEach(x=>x.textContent='?');coins.forEach(x=>{x.className='coin';x.style.setProperty('--team','#7047e8')});waiting.classList.remove('show');again.classList.remove('show');roll.disabled=false;roll.textContent='יאללה, מגרילים'}
+    function start(){if(running)return;running=true;const final=pair(),started=performance.now();let tick=0;stage.className='rolling';title.textContent='מי עולה ראשון?';copy.textContent='הקבוצות מתערבבות...';waiting.classList.remove('show');again.classList.remove('show');roll.disabled=true;roll.textContent='מגרילים...';coins.forEach(x=>x.className='coin spinning');timer=setInterval(()=>{tick++;const elapsed=performance.now()-started;if(elapsed<1450){show(pair());coins.forEach(x=>x.className='coin spinning')}else{if(elapsed>2550&&tick%3!==0)return;const options=[...Array(teamCount).keys()].filter(x=>x!==final[0]);show([final[0],options[random(options.length)]],1);coins[0].className='coin locked';coins[1].className='coin spinning';title.textContent='קבוצה אחת בפנים';copy.textContent=`${allTeams[final[0]].name} מחכים ליריבה...`;if(elapsed>2550)copy.textContent='עוד רגע יודעים מי פותחת מולם...'}},92);finishTimer=setTimeout(()=>{clearInterval(timer);show(final,2);stage.className='result';title.textContent='פותחים את המשחק';copy.textContent='שתי הקבוצות הראשונות על המגרש';waitingNames.textContent=allTeams.slice(0,teamCount).filter((_,i)=>!final.includes(i)).map(x=>x.name).join(' · ');waiting.classList.add('show');again.classList.add('show');roll.disabled=false;roll.textContent='עולים למגרש';running=false;if(navigator.vibrate)navigator.vibrate([35,45,90])},3300)}
+    roll.addEventListener('click',()=>stage.classList.contains('result')?reset():start());again.addEventListener('click',start);
+    document.querySelectorAll('.setup button').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.setup button').forEach(x=>x.classList.remove('active'));button.classList.add('active');teamCount=Number(button.dataset.count);reset()}));
+  </script>
+</body>
+</html>

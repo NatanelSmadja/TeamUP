@@ -69,10 +69,10 @@ export default function PlayerPage() {
   const themeColor = groupSession?.group.theme_color || '#7047e8';
   const style = {'--player-color': themeColor, '--overall-value': `${overall * 3.6}deg`} as CSSProperties;
   const primaryStats = [
-    {label: 'משחקים', value: data.games, note: 'הופעות בקבוצה'},
+    {label: 'ערבי משחק', value: data.games, note: 'ערבים שבהם השתתף בקבוצה'},
     {label: 'שערים', value: data.totalGoals, note: 'בכל המשחקים'},
     {label: 'זכיות MVP', value: data.mvp, note: 'בחירת שחקני הקבוצה'},
-    {label: 'שערים נקיים', value: data.cleanSheets, note: 'משחקים ללא ספיגה'},
+    {label: 'שערים נקיים', value: data.cleanSheets, note: 'משחקונים ללא ספיגה במהלך ערבי המשחק'},
   ];
   const secondaryStats = [
     {label: 'דירוג ממוצע', value: data.avg.toFixed(2)},

@@ -8,6 +8,7 @@ import {canManage, useGroup} from '../hooks/useGroup';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {supabase} from '../lib/supabase';
 import {fullName, isPollPast, statusLabel} from '../lib/utils';
+import {compareRatingRank} from '../lib/ratingRank';
 import type {Match, Registration} from '../types';
 import GoalScorersDialog from '../components/GoalScorersDialog';
 import GroupDashboardCard from '../components/GroupDashboardCard';
@@ -57,8 +58,9 @@ export default function HomePage() {
       const statMap = new Map((stats || []).map((row: any) => [row.user_id, row]));
       const players = (members || []).map((member: any) => {
         const stat: any = statMap.get(member.user_id);
-        return {...member, mvp: Number(stat?.mvp_count || 0), games: Number(stat?.games_count || 0), rating: Number(stat?.avg_rating ?? member.profiles.base_rating ?? 3)};
-      }).sort((a: any, b: any) => b.mvp - a.mvp || b.rating - a.rating);
+        const rating = Number(stat?.avg_rating ?? member.profiles.base_rating ?? 3);
+        return {...member, id: member.user_id, mvp: Number(stat?.mvp_count || 0), games: Number(stat?.games_count || 0), rating, avg_rating: rating, rating_count: Number(stat?.rating_count || 0)};
+      }).sort(compareRatingRank);
       const meIndex = players.findIndex((player: any) => player.user_id === user!.id);
       return {
         matches: matchRows,
@@ -70,6 +72,7 @@ export default function HomePage() {
         leader: players[0],
         me: meIndex >= 0 ? players[meIndex] : null,
         meRank: meIndex >= 0 ? meIndex + 1 : null,
+        leaderboardCount: players.length,
         goals: Number(goalStats?.[0]?.total_goals || 0),
         goalLeaders: (goalLeaders || []).map((player: any) => ({...player, avatar_url: players.find(member => member.user_id === player.user_id)?.profiles?.avatar_url, goals: Number(player.goals || 0)})).filter((player: any) => player.goals > 0),
       };
@@ -133,7 +136,7 @@ export default function HomePage() {
             <Link to="/stats"><Star/><strong>{data?.me?.rating?.toFixed(1) || '3.0'}</strong><span>דירוג</span></Link>
             <Link to="/stats"><Trophy/><strong>{data?.me?.mvp || 0}</strong><span>MVP</span></Link>
           </div>
-          <div className="home-leader-note"><Trophy size={18}/><div><span>המיקום שלך בקבוצה</span><strong>{data?.meRank ? `מקום ${data.meRank} בדירוג הקבוצתי` : 'הדירוג יופיע אחרי המשחקים הראשונים'}</strong></div></div>
+          <div className="home-leader-note"><Trophy size={18}/><div><span>המיקום שלך בטבלת הדירוגים</span><strong>{data?.meRank ? `מקום ${data.meRank} מתוך ${data?.leaderboardCount} שחקנים · לפי ממוצע דירוגים` : 'הדירוג יופיע אחרי המשחקים הראשונים'}</strong></div></div>
         </Card>
       </section>
 
@@ -152,7 +155,7 @@ export default function HomePage() {
           </Card>
           <div className="home-standouts">
             <Card className="home-standout goal-king"><div className="home-standout-icon"><Crown/></div><div><small>מלך השערים</small><h3>{topScorer ? `${topScorer.first_name} ${topScorer.last_name}` : 'הכתר עדיין פנוי'}</h3><p>{topScorer ? `${topScorer.goals} שערים מאושרים` : 'הכובש הראשון יופיע כאן'}</p></div>{topScorer && <Link to={`/players/${topScorer.user_id}`}><ArrowLeft/></Link>}</Card>
-            <Card className="home-standout team-leader"><div className="home-standout-icon"><Trophy/></div><div><small>מוביל הקבוצה</small><h3>{data?.leader ? fullName(data.leader.profiles) : 'עוד אין מוביל'}</h3><p>{data?.leader ? `${data.leader.mvp} זכיות MVP · דירוג ${data.leader.rating.toFixed(1)}` : 'הנתונים יופיעו לאחר משחקים ודירוגים'}</p></div>{data?.leader && <Link to={`/players/${data.leader.user_id}`}><ArrowLeft/></Link>}</Card>
+            <Card className="home-standout team-leader"><div className="home-standout-icon"><Trophy/></div><div><small>מוביל בדירוגים</small><h3>{data?.leader ? fullName(data.leader.profiles) : 'עוד אין מוביל'}</h3><p>{data?.leader ? `${data.leader.mvp} זכיות MVP · דירוג ${data.leader.rating.toFixed(1)}` : 'הנתונים יופיעו לאחר משחקים ודירוגים'}</p></div>{data?.leader && <Link to={`/players/${data.leader.user_id}`}><ArrowLeft/></Link>}</Card>
           </div>
         </div>
       </section>

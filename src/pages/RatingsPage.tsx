@@ -9,6 +9,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useGroup} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
 import {fullName, positionLabel} from '../lib/utils';
+import {compareRatingRank} from '../lib/ratingRank';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 
 type BoardRow = {id: string;first_name: string;last_name: string;avatar_url?: string | null;avg_rating: number;rating_count: number;mvp_count: number};
@@ -44,7 +45,7 @@ export default function RatingsPage() {
           rating_count: Number(stat?.rating_count || 0),
           mvp_count: Number(stat?.mvp_count || 0),
         };
-      }).sort((a: BoardRow, b: BoardRow) => b.avg_rating - a.avg_rating) as BoardRow[];
+      }).sort(compareRatingRank) as BoardRow[];
     },
   });
 
@@ -187,7 +188,7 @@ export default function RatingsPage() {
     </Card> : <Card className="empty-state ratings-closed-state"><h2>אין כרגע משחק פתוח לדירוג</h2><p>לאחר משחק שהשתתפת בו, המנהל יפתח את הדירוג והוא יופיע כאן.</p></Card>}
 
     <section className="rating-leaderboard rating-leaderboard-v2">
-      <div className="rating-leaderboard-heading"><div><small>טבלת הקבוצה</small><h2>הדירוג הנוכחי</h2><p>הממוצע מבוסס על דירוגים שנשלחו לאחר משחקים.</p></div><Badge>{board.length} שחקנים</Badge></div>
+      <div className="rating-leaderboard-heading"><div><small>טבלת הקבוצה</small><h2>הדירוג הנוכחי</h2><p>לפי ממוצע הדירוגים שהתקבלו; בשוויון, מספר הדירוגים מכריע.</p></div><Badge>{board.length} שחקנים</Badge></div>
       {boardLoading ? <div className="ratings-loading-list"><i/><i/><i/></div> : <div className="rating-board-list">
         {board.map((player, index) => {
           const name = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'שחקן';

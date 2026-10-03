@@ -7,7 +7,7 @@ import {Link} from 'react-router-dom';
 import {Badge, Card} from '../components/ui';
 import {useGroup} from '../hooks/useGroup';
 import {supabase} from '../lib/supabase';
-import {fullName} from '../lib/utils';
+import {fullName, positionLabel} from '../lib/utils';
 import {useRealtimeInvalidation} from '../hooks/useRealtime';
 import {useState} from 'react';
 
@@ -129,7 +129,7 @@ export default function StatsPage() {
 
     {view === 'all' && <Card className="stats-list-card">
       <div className="section-title"><div><h2>חמישיית המובילים</h2><p>הדירוג קודם; בשוויון מספר הדירוגים מכריע.</p></div><Badge>{Math.min(5, byRating.length)} שחקנים</Badge></div>
-      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player.profile}/><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions || []).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span data-label="דירוג">{player.rating.toFixed(2)}</span><span data-label="MVP">{player.mvp}</span><span data-label="משחקים">{player.games}</span></div></Link>)}</div>
+      <div className="leaderboard-table">{byRating.slice(0, 5).map((player, index) => <Link to={`/players/${player.id}`} key={player.id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player.profile}/><div><strong className={player.id === user?.id ? 'goal-scorer-me' : undefined}>{fullName(player.profile)}</strong><span>{(player.profile?.preferred_positions?.length ? player.profile.preferred_positions : [player.profile?.preferred_position]).filter(Boolean).map(positionLabel).join(' · ') || 'שחקן'}</span></div><div className="leader-stats"><span data-label="דירוג">{player.rating.toFixed(2)}</span><span data-label="MVP">{player.mvp}</span><span data-label="משחקים">{player.games}</span></div></Link>)}</div>
       {!byRating.length && <p className="empty-inline">עדיין אין שחקנים שקיבלו דירוג.</p>}
       <RatingLeadersDialog rows={byRating}/>
     </Card>}
@@ -151,8 +151,8 @@ function GoalBoard({title, rows}: {title: string;rows: any[]}) {
 function CleanSheetBoard({rows}: {rows: any[]}) {
   const visibleRows = rows.slice(0, 3);
   return <Card className="stats-list-card clean-sheet-board">
-    <div className="section-title"><div><h2>טופ 3 שוערים</h2><p>שערים נקיים ממשחקים שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
-    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player} className="player-avatar"/><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} משחקים עם שער נקי</span></div><div className="leader-stats"><span data-label="שערים נקיים">{player.clean_sheets}</span></div></Link>)}</div>
-    {!visibleRows.length && <p className="empty-inline">עדיין אין שערים נקיים ממשחקים שהסתיימו.</p>}
+    <div className="section-title"><div><h2>טופ 3 שוערים</h2><p>שערים נקיים במשחקונים של ערבי משחק שהושלמו. אורחים אינם נכנסים לדירוג המצטבר.</p></div><Badge>{visibleRows.length} שוערים</Badge></div>
+    <div className="leaderboard-table">{visibleRows.map((player: any, index: number) => <Link to={`/players/${player.user_id}`} key={player.user_id} className="leader-row"><b>{index + 1}</b><PlayerAvatar profile={player} className="player-avatar"/><div><strong>{player.first_name} {player.last_name}</strong><span>{Number(player.matches_with_clean_sheet || 0)} ערבי משחק עם שער נקי</span></div><div className="leader-stats"><span data-label="שערים נקיים במשחקונים">{player.clean_sheets}</span></div></Link>)}</div>
+    {!visibleRows.length && <p className="empty-inline">עדיין אין שערים נקיים מערבי משחק שהסתיימו.</p>}
   </Card>;
 }
